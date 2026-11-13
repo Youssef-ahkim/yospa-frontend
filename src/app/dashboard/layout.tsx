@@ -4,7 +4,8 @@ import { useEffect, Suspense, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { ToastProvider } from "@/context/ToastContext";
+import { getSafeRedirectPath } from "@/lib/api";
+import { Spinner } from "@/components/ui/Spinner";
 import Image from "next/image";
 import {
   Users,
@@ -110,7 +111,11 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/login");
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        const currentPath = window.location.pathname + window.location.search;
+        const safeNext = getSafeRedirectPath(currentPath);
+        router.replace(`/login?next=${encodeURIComponent(safeNext)}`);
+      }
     }
   }, [user, isLoading, router]);
 
@@ -125,8 +130,27 @@ export default function DashboardLayout({
         .toUpperCase()
     : "?";
 
+  // Prevent flash of protected content while session is loading or if user is invalid.
+  // Nothing from the dashboard shell or children renders until user is validated.
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
+        <div className="flex flex-col items-center gap-4">
+          <Image
+            src="/logo.png"
+            alt="Yospa logo"
+            height={64}
+            width={Math.round((64 * 1672) / 941)}
+            className="object-contain"
+            priority
+          />
+          <Spinner className="w-6 h-6 text-indigo-600" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <ToastProvider>
     <div className="min-h-screen bg-[#f8f9fc] flex">
       {/* ── Desktop Sidebar ── */}
       <div className="hidden md:flex md:w-[260px] md:flex-col fixed inset-y-0 z-50">
@@ -314,6 +338,5 @@ export default function DashboardLayout({
         <BottomTabBar />
       </Suspense>
     </div>
-    </ToastProvider>
   );
 }

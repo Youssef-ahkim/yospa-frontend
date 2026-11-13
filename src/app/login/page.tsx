@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, User } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api";
-import { Sparkles, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { apiFetch, getSafeRedirectPath } from "@/lib/api";
+import { Spinner } from "@/components/ui/Spinner";
+import { Sparkles, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 interface LoginResponse {
   message?: string;
@@ -13,20 +14,56 @@ interface LoginResponse {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <Spinner className="w-5 h-5 text-indigo-500" />
+          </div>
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
+  );
+}
+
+function LoginFormContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const { login, user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
+  const nextParam = searchParams.get("next");
+  const isExpired = searchParams.get("expired") === "1";
+
+  // Handle one-time session expiry banner and strip expired=1 from URL
+  useEffect(() => {
+    if (isExpired) {
+      setSessionExpired(true);
+      const safeNext = getSafeRedirectPath(nextParam);
+      const nextQuery = nextParam && safeNext !== "/dashboard" ? `?next=${encodeURIComponent(safeNext)}` : "";
+      router.replace(`/login${nextQuery}`, { scroll: false });
+    }
+  }, [isExpired, nextParam, router]);
+
+  // Wait for auth to finish loading before redirecting an already signed-in user
   useEffect(() => {
     if (!isAuthLoading && user) {
-      router.replace("/dashboard");
+      const destination = getSafeRedirectPath(nextParam);
+      router.replace(destination);
     }
-  }, [user, isAuthLoading, router]);
+  }, [user, isAuthLoading, nextParam, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +76,9 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      login(data.token, data.user);
-      router.push("/dashboard");
+      const destination = getSafeRedirectPath(nextParam);
+      // Single redirect handled by login()
+      login(data.token, data.user, destination);
     } catch (err: any) {
       setError(err.message || "Invalid email or password. Please try again.");
     } finally {
@@ -48,6 +86,7 @@ export default function LoginPage() {
     }
   };
 
+  // Render nothing while verifying existing session or redirecting signed-in user
   if (isAuthLoading || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -55,7 +94,7 @@ export default function LoginPage() {
           <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+          <Spinner className="w-5 h-5 text-indigo-500" />
         </div>
       </div>
     );
@@ -136,9 +175,17 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Session Expired Banner */}
+          {sessionExpired && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 animate-in fade-in duration-200">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
+              <p className="text-sm font-medium">Session expired, please sign in again.</p>
+            </div>
+          )}
+
           {/* Error message */}
           {error && (
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 animate-in fade-in duration-200">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p className="text-sm font-medium">{error}</p>
             </div>
@@ -203,7 +250,7 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Spinner className="w-4 h-4" />
                   Signing in...
                 </>
               ) : (
