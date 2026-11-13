@@ -1,36 +1,27 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import {
   Client,
   Service,
   Reservation,
   ReservationStatus,
   RESERVATION_STATUSES,
-  ALLOWED_STATUS_TRANSITIONS,
 } from "@/types";
-import Link from "next/link";
 import {
   Calendar,
   List,
-  Clock,
-  User,
-  Tag,
   Plus,
   X,
   AlertCircle,
   Search,
-  CheckCircle2,
-  CheckCheck,
-  XCircle,
   RotateCcw,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/currency";
 import { CalendarView } from "@/components/reservations/CalendarView";
+import { ReservationsTable } from "@/components/reservations/ReservationsTable";
 import { ReservationForm } from "@/components/reservations/ReservationForm";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/context/ToastContext";
 
@@ -56,7 +47,7 @@ export default function ReservationsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const [formData, setFormData] = useState({
     client_id: "",
@@ -186,7 +177,7 @@ export default function ReservationsPage() {
   };
 
   const openCreateModal = (initialStartTime?: string) => {
-    setFormError(null);
+    setFieldErrors({});
     const initialStart = initialStartTime || getDefaultStartTime();
     const defaultService = services[0];
     const initialEnd = defaultService ? calculateEndTime(initialStart, defaultService.duration_minutes) : "";
@@ -225,13 +216,19 @@ export default function ReservationsPage() {
 
   const handleCreateReservation = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
+    setFieldErrors({});
 
-    if (!formData.client_id) { setFormError("Please select a client."); return; }
-    if (!formData.service_id) { setFormError("Please select a service."); return; }
-    if (!formData.start_time || !formData.end_time) { setFormError("Please specify both start and end date/time."); return; }
-    if (new Date(formData.end_time) <= new Date(formData.start_time)) { setFormError("End time must be later than the start time."); return; }
-    if (!formData.total_price || isNaN(Number(formData.total_price))) { setFormError("Please enter a valid price."); return; }
+    if (!formData.client_id) { toast.error("Please select a client."); return; }
+    if (!formData.service_id) { toast.error("Please select a service."); return; }
+    if (!formData.start_time || !formData.end_time) { toast.error("Please specify both start and end date/time."); return; }
+    if (new Date(formData.end_time) <= new Date(formData.start_time)) {
+      setFieldErrors({ end_time: ["End time must be later than the start time."] });
+      return;
+    }
+    if (!formData.total_price || isNaN(Number(formData.total_price))) {
+      setFieldErrors({ total_price: ["Please enter a valid price."] });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -251,9 +248,20 @@ export default function ReservationsPage() {
       const newReservation = response.reservation || response;
       setReservations((prev) => [newReservation, ...prev]);
       setIsModalOpen(false);
-      toast.success("Reservation created successfully.");
+      toast.success("Reservation scheduled successfully.");
     } catch (err: any) {
-      setFormError(err.message || "Failed to create reservation. Please review inputs.");
+      if (err instanceof ApiError && err.errors) {
+        setFieldErrors(err.errors);
+        const knownFields = ["client_id", "service_id", "start_time", "end_time", "total_price", "notes"];
+        const nonFieldKeys = Object.keys(err.errors).filter((k) => !knownFields.includes(k));
+        if (nonFieldKeys.length > 0) {
+          toast.error(err.errors[nonFieldKeys[0]][0] || err.message);
+        } else {
+          toast.error("Please check the form inputs.");
+        }
+      } else {
+        toast.error(err.message || "Failed to create reservation. Please review inputs.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -265,380 +273,192 @@ export default function ReservationsPage() {
     setDateFilter("all");
   };
 
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || dateFilter !== "all";
+
+  const statusTabs: { label: string; value: "all" | ReservationStatus; count: number }[] = [
+    { label: "All", value: "all", count: statusCounts.all },
+    { label: "Pending", value: "pending", count: statusCounts.pending },
+    { label: "Confirmed", value: "confirmed", count: statusCounts.confirmed },
+    { label: "Completed", value: "completed", count: statusCounts.completed },
+    { label: "Cancelled", value: "cancelled", count: statusCounts.cancelled },
+  ];
+
+  const dateFilterButtons: { label: string; value: DateFilter }[] = [
+    { label: "All Time", value: "all" },
+    { label: "Today", value: "today" },
+    { label: "Upcoming", value: "upcoming" },
+    { label: "Past", value: "past" },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reservations</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Reservations</h1>
           <p className="text-sm text-gray-500 mt-1">
-            View, schedule, and manage appointment workflows
+            Manage your schedule, bookings, and appointment statuses.
           </p>
         </div>
+
         <div className="flex items-center gap-3">
-          {/* List / Calendar toggle */}
-          <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 shadow-xs">
+          {/* View Mode Switcher */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
             <button
-              type="button"
               onClick={() => setActiveView("list")}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                activeView === "list" ? "bg-white text-gray-900 shadow-xs font-semibold" : "text-gray-600 hover:text-gray-900"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeView === "list"
+                  ? "bg-white text-gray-900 shadow-xs"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               <List className="w-3.5 h-3.5" />
               <span>List</span>
             </button>
             <button
-              type="button"
               onClick={() => setActiveView("calendar")}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                activeView === "calendar" ? "bg-white text-gray-900 shadow-xs font-semibold" : "text-gray-600 hover:text-gray-900"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeView === "calendar"
+                  ? "bg-white text-gray-900 shadow-xs"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Calendar</span>
             </button>
           </div>
+
           <button
             onClick={() => openCreateModal()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            New Reservation
+            <span>New Reservation</span>
           </button>
         </div>
       </div>
 
-      {/* Load error */}
+      {/* Global Page Error */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <p className="text-sm font-medium">{error}</p>
+          </div>
+          <button onClick={() => fetchData()} className="text-sm underline hover:text-red-900 cursor-pointer">
+            Retry
+          </button>
         </div>
       )}
 
-      {/* Filter Controls Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs space-y-4">
-        {/* Search & Date Filter Row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Search Bar */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by client name, email, phone, or service..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Date Filter Tabs (List View Only) */}
-          {activeView === "list" && (
-            <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50 self-start sm:self-auto">
-              {(
-                [
-                  { id: "all", label: "All Dates" },
-                  { id: "today", label: "Today" },
-                  { id: "upcoming", label: "Upcoming" },
-                  { id: "past", label: "Past" },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setDateFilter(item.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                    dateFilter === item.id
-                      ? "bg-white text-gray-900 shadow-xs font-semibold"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Status Filter Pills Row */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
-          <span className="text-xs font-medium text-gray-400 mr-1">Status:</span>
-
-          {/* All Pill */}
-          <button
-            onClick={() => setStatusFilter("all")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border ${
-              statusFilter === "all"
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            <span>All</span>
-            <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                statusFilter === "all" ? "bg-indigo-700 text-white" : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {statusCounts.all}
-            </span>
-          </button>
-
-          {/* Individual Status Pills */}
-          {(["confirmed", "pending", "completed", "cancelled"] as const).map((statusKey) => {
-            const config = RESERVATION_STATUSES[statusKey];
-            const isSelected = statusFilter === statusKey;
-            const count = statusCounts[statusKey];
-
-            return (
-              <button
-                key={statusKey}
-                onClick={() => setStatusFilter(statusKey)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border ${
-                  isSelected
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : `${config.badgeClass} hover:opacity-80`
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-white" : config.dotClass}`} />
-                <span>{config.label}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                    isSelected ? "bg-indigo-700 text-white" : "bg-white/80 text-gray-700"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Content Area: Calendar View vs List Table View */}
+      {/* Main Content Area */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-200 rounded-xl">
-          <Spinner className="w-6 h-6 text-indigo-600 mb-3" />
-          <p className="text-sm text-gray-400">Loading reservations...</p>
+        <div className="flex justify-center items-center py-24 bg-white border border-gray-200 rounded-xl shadow-xs">
+          <div className="flex flex-col items-center gap-2">
+            <Spinner className="w-8 h-8 text-indigo-600" />
+            <span className="text-xs text-gray-400 font-medium">Loading reservations...</span>
+          </div>
         </div>
       ) : activeView === "calendar" ? (
         <CalendarView
           reservations={reservations}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
-          onSlotClick={(slotStartTime) => openCreateModal(slotStartTime)}
+          onSlotClick={(timeStr) => openCreateModal(timeStr)}
           onStatusChange={handleStatusChange}
           onCancelClick={(res) => setCancelTarget(res)}
           updatingId={updatingId}
         />
       ) : (
         <>
-          {/* Results Header */}
-          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-            <span>
-              Showing <strong>{displayedReservations.length}</strong> of {reservations.length} total reservations
-            </span>
-            {(searchQuery || statusFilter !== "all" || dateFilter !== "all") && (
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Reset all filters
-              </button>
-            )}
-          </div>
-
-          {/* Table & Content Area */}
-          {displayedReservations.length === 0 ? (
-            <div className="text-center py-16 bg-white border border-gray-200 rounded-xl space-y-3">
-              <Calendar className="w-10 h-10 text-gray-300 mx-auto" />
-              <h3 className="text-sm font-semibold text-gray-900">
-                {reservations.length === 0 ? "No reservations yet" : "No reservations match your filters"}
-              </h3>
-              <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                {reservations.length === 0
-                  ? "Get started by scheduling your first client appointment."
-                  : "Try adjusting your search keyword, date period, or status tab to find matching appointments."}
-              </p>
-              <div className="pt-2">
-                {reservations.length === 0 ? (
+          {/* Filters Bar */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              {/* Search input */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by client, phone, email, service..."
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                />
+                {searchQuery && (
                   <button
-                    onClick={() => openCreateModal()}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors cursor-pointer"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Create Reservation
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                ) : (
+                )}
+              </div>
+
+              {/* Date Filter Quick Buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {dateFilterButtons.map((btn) => (
+                  <button
+                    key={btn.value}
+                    onClick={() => setDateFilter(btn.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      dateFilter === btn.value
+                        ? "bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-semibold"
+                        : "text-gray-600 hover:bg-gray-50 border border-gray-200"
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+
+                {hasActiveFilters && (
                   <button
                     onClick={clearAllFilters}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer ml-1"
+                    title="Reset all search filters"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Clear Filters
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset</span>
                   </button>
                 )}
               </div>
             </div>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Client
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Service
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Date & Time
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Price
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {displayedReservations.map((res) => {
-                      const clientName = res.client?.full_name || "Unknown Client";
-                      const serviceName = res.service?.name || "General Service";
-                      const formattedPrice = res.total_price ?? 0;
-                      const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[res.status] || [];
-                      const isRowUpdating = updatingId === res.id;
 
-                      return (
-                        <tr key={res.id} className="hover:bg-gray-50/80 transition-colors">
-                          {/* Client Column */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                              <div>
-                                {res.client?.id ? (
-                                  <Link
-                                    href={`/dashboard/clients/${res.client.id}`}
-                                    className="text-sm font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
-                                  >
-                                    {clientName}
-                                  </Link>
-                                ) : (
-                                  <div className="text-sm font-semibold text-gray-900">{clientName}</div>
-                                )}
-                                <div className="text-xs text-gray-500">
-                                  {res.client?.phone || res.client?.email || "No contact info"}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Service Column */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                              <Tag className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                              <span>{serviceName}</span>
-                            </div>
-                            {res.service?.duration_minutes && (
-                              <span className="text-xs text-gray-400">
-                                {res.service.duration_minutes} min duration
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Status Column */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <StatusBadge status={res.status} />
-                          </td>
-
-                          {/* Date & Time Column */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                              <span>
-                                {res.start_time ? new Date(res.start_time).toLocaleString() : "Date N/A"}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Price Column */}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            <span>{formatCurrency(formattedPrice)}</span>
-                          </td>
-
-                          {/* Action Transitions Column */}
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                            {isRowUpdating ? (
-                              <div className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-                                <Spinner className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>Updating...</span>
-                              </div>
-                            ) : allowedNextStatuses.length === 0 ? (
-                              <span className="text-xs text-gray-400 italic">No actions</span>
-                            ) : (
-                              <div className="inline-flex items-center justify-end gap-1.5">
-                                {allowedNextStatuses.includes("confirmed") && (
-                                  <button
-                                    type="button"
-                                    disabled={isRowUpdating}
-                                    onClick={() => handleStatusChange(res, "confirmed")}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors cursor-pointer border border-emerald-200"
-                                    title="Confirm this appointment"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    Confirm
-                                  </button>
-                                )}
-
-                                {allowedNextStatuses.includes("completed") && (
-                                  <button
-                                    type="button"
-                                    disabled={isRowUpdating}
-                                    onClick={() => handleStatusChange(res, "completed")}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer border border-blue-200"
-                                    title="Mark appointment as completed"
-                                  >
-                                    <CheckCheck className="w-3 h-3" />
-                                    Complete
-                                  </button>
-                                )}
-
-                                {allowedNextStatuses.includes("cancelled") && (
-                                  <button
-                                    type="button"
-                                    disabled={isRowUpdating}
-                                    onClick={() => handleStatusChange(res, "cancelled")}
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors cursor-pointer border border-red-200"
-                                    title="Cancel this reservation"
-                                  >
-                                    <XCircle className="w-3 h-3" />
-                                    Cancel
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            {/* Status Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto pt-2 border-t border-gray-100">
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                    statusFilter === tab.value
+                      ? "bg-gray-900 text-white font-semibold"
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                      statusFilter === tab.value
+                        ? "bg-gray-700 text-gray-200"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Table Component */}
+          <ReservationsTable
+            displayedReservations={displayedReservations}
+            totalReservationsCount={reservations.length}
+            updatingId={updatingId}
+            onStatusChange={handleStatusChange}
+            onCreateClick={() => openCreateModal()}
+            onClearFilters={clearAllFilters}
+          />
         </>
       )}
 
@@ -648,31 +468,32 @@ export default function ReservationsPage() {
         onClose={() => setCancelTarget(null)}
         onConfirm={handleConfirmCancel}
         title="Cancel Reservation?"
-        description={
-          cancelTarget ? (
-            <>
-              <p>
-                Are you sure you want to cancel the appointment for{" "}
-                <strong className="text-gray-900">
-                  {cancelTarget.client?.full_name || "this client"}
-                </strong>
-                ?
-              </p>
-              <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs space-y-1 text-gray-600">
-                <p>
-                  <strong>Service:</strong> {cancelTarget.service?.name || "General Service"}
-                </p>
-                <p>
-                  <strong>Date:</strong>{" "}
-                  {cancelTarget.start_time ? new Date(cancelTarget.start_time).toLocaleString() : "N/A"}
-                </p>
-              </div>
-            </>
-          ) : undefined
-        }
-        confirmLabel={isCancelling ? "Cancelling..." : "Yes, Cancel"}
+        confirmLabel="Cancel Reservation"
+        confirmLoadingLabel="Cancelling..."
+        cancelLabel="Keep Reservation"
         isConfirming={isCancelling}
-      />
+      >
+        {cancelTarget && (
+          <>
+            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+              Are you sure you want to cancel the appointment for{" "}
+              <strong className="text-gray-900">
+                {cancelTarget.client?.full_name || "this client"}
+              </strong>
+              ?
+            </p>
+            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs space-y-1 text-gray-600">
+              <p>
+                <strong>Service:</strong> {cancelTarget.service?.name || "General Service"}
+              </p>
+              <p>
+                <strong>Date:</strong>{" "}
+                {cancelTarget.start_time ? new Date(cancelTarget.start_time).toLocaleString() : "N/A"}
+              </p>
+            </div>
+          </>
+        )}
+      </ConfirmDialog>
 
       {/* New Reservation Slide-Over */}
       <ReservationForm
@@ -686,7 +507,7 @@ export default function ReservationsPage() {
         onServiceChange={handleServiceChange}
         onStartTimeChange={handleStartTimeChange}
         isSubmitting={isSubmitting}
-        formError={formError}
+        fieldErrors={fieldErrors}
       />
     </div>
   );

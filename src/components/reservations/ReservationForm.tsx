@@ -1,7 +1,8 @@
 "use client";
 
-import { Client, Service, Reservation, ReservationStatus } from "@/types";
+import { Client, Service, ReservationStatus } from "@/types";
 import { SlideOver } from "@/components/ui/SlideOver";
+import { FormField } from "@/components/ui/FormField";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@/lib/currency";
 import { Calendar } from "lucide-react";
@@ -26,7 +27,7 @@ interface ReservationFormProps {
   onServiceChange: (serviceId: string) => void;
   onStartTimeChange: (startTime: string) => void;
   isSubmitting: boolean;
-  formError: string | null;
+  fieldErrors?: Record<string, string[]>;
 }
 
 export function ReservationForm({
@@ -40,10 +41,14 @@ export function ReservationForm({
   onServiceChange,
   onStartTimeChange,
   isSubmitting,
-  formError,
+  fieldErrors = {},
 }: ReservationFormProps) {
-  const inputCls =
-    "w-full px-3 py-2 border border-gray-300 rounded-lg shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm";
+  const inputCls = (field?: string) =>
+    `w-full px-3 py-2 border rounded-lg shadow-xs focus:outline-none focus:ring-2 text-sm transition-colors ${
+      field && fieldErrors[field]
+        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+        : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+    }`;
 
   return (
     <SlideOver
@@ -74,22 +79,17 @@ export function ReservationForm({
       }
     >
       <form id="create-reservation-form" onSubmit={onSubmit} className="p-6 space-y-5">
-        {formError && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm flex items-start gap-2">
-            <span>{formError}</span>
-          </div>
-        )}
-
         {/* Client Picker */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">
-              Client <span className="text-red-500">*</span>
-            </label>
+        <FormField
+          label="Client"
+          required
+          error={fieldErrors.client_id?.[0]}
+          labelExtra={
             <Link href="/dashboard/clients" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
               + Add New Client
             </Link>
-          </div>
+          }
+        >
           {clients.length === 0 ? (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
               No clients found. Please{" "}
@@ -103,7 +103,7 @@ export function ReservationForm({
               required
               value={formData.client_id}
               onChange={(e) => onFormDataChange({ ...formData, client_id: e.target.value })}
-              className={inputCls + " bg-white"}
+              className={inputCls("client_id") + " bg-white"}
             >
               <option value="">-- Select Client --</option>
               {clients.map((c) => (
@@ -113,13 +113,10 @@ export function ReservationForm({
               ))}
             </select>
           )}
-        </div>
+        </FormField>
 
         {/* Service Picker */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Service <span className="text-red-500">*</span>
-          </label>
+        <FormField label="Service" required error={fieldErrors.service_id?.[0]}>
           {services.length === 0 ? (
             <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600">
               Loading available services...
@@ -129,7 +126,7 @@ export function ReservationForm({
               required
               value={formData.service_id}
               onChange={(e) => onServiceChange(e.target.value)}
-              className={inputCls + " bg-white"}
+              className={inputCls("service_id") + " bg-white"}
             >
               <option value="">-- Select Service --</option>
               {services.map((s) => (
@@ -139,42 +136,33 @@ export function ReservationForm({
               ))}
             </select>
           )}
-        </div>
+        </FormField>
 
         {/* Date & Time Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date & Time <span className="text-red-500">*</span>
-            </label>
+          <FormField label="Start Date & Time" required error={fieldErrors.start_time?.[0]}>
             <input
               type="datetime-local"
               required
               value={formData.start_time}
               onChange={(e) => onStartTimeChange(e.target.value)}
-              className={inputCls}
+              className={inputCls("start_time")}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date & Time <span className="text-red-500">*</span>
-            </label>
+          </FormField>
+          <FormField label="End Date & Time" required error={fieldErrors.end_time?.[0]}>
             <input
               type="datetime-local"
               required
               value={formData.end_time}
               onChange={(e) => onFormDataChange({ ...formData, end_time: e.target.value })}
-              className={inputCls}
+              className={inputCls("end_time")}
             />
-          </div>
+          </FormField>
         </div>
 
         {/* Price and Status Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Total Price (MAD) <span className="text-red-500">*</span>
-            </label>
+          <FormField label="Total Price (MAD)" required error={fieldErrors.total_price?.[0]}>
             <div className="relative">
               <input
                 type="number"
@@ -183,42 +171,38 @@ export function ReservationForm({
                 required
                 value={formData.total_price}
                 onChange={(e) => onFormDataChange({ ...formData, total_price: e.target.value })}
-                className={inputCls + " pr-12"}
+                className={inputCls("total_price") + " pr-12"}
                 placeholder="0.00"
               />
               <span className="text-xs font-semibold text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 select-none">
                 MAD
               </span>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          </FormField>
+          <FormField label="Status">
             <select
               value={formData.status}
               onChange={(e) => onFormDataChange({ ...formData, status: e.target.value as ReservationStatus })}
-              className={inputCls + " bg-white"}
+              className={inputCls() + " bg-white"}
             >
               <option value="pending">Pending</option>
               <option value="confirmed">Confirmed</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-          </div>
+          </FormField>
         </div>
 
         {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Notes / Preferences <span className="text-gray-400 font-normal">(Optional)</span>
-          </label>
+        <FormField label="Notes / Preferences" error={fieldErrors.notes?.[0]}>
           <textarea
             rows={3}
             value={formData.notes}
             onChange={(e) => onFormDataChange({ ...formData, notes: e.target.value })}
-            className={inputCls}
+            className={inputCls("notes")}
             placeholder="E.g. Room preference, special accommodations..."
           />
-        </div>
+        </FormField>
       </form>
     </SlideOver>
   );

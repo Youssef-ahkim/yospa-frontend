@@ -10,7 +10,10 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   title: string;
   description?: React.ReactNode;
+  children?: React.ReactNode;
   confirmLabel?: string;
+  confirmLoadingLabel?: string;
+  cancelLabel?: string;
   confirmClassName?: string;
   isConfirming?: boolean;
 }
@@ -21,7 +24,10 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
+  children,
   confirmLabel = "Confirm",
+  confirmLoadingLabel,
+  cancelLabel = "Cancel",
   confirmClassName = "bg-red-600 hover:bg-red-700 text-white",
   isConfirming = false,
 }: ConfirmDialogProps) {
@@ -68,6 +74,7 @@ export function ConfirmDialog({
               {description}
             </div>
           )}
+          {children}
         </div>
 
         <div className="flex gap-3 pt-2">
@@ -77,7 +84,7 @@ export function ConfirmDialog({
             onClick={onClose}
             className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             type="button"
@@ -86,7 +93,7 @@ export function ConfirmDialog({
             className={`flex-1 py-2 px-4 font-medium text-sm rounded-lg shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${confirmClassName}`}
           >
             {isConfirming && <Spinner className="w-4 h-4" />}
-            {confirmLabel}
+            {isConfirming ? (confirmLoadingLabel || confirmLabel) : confirmLabel}
           </button>
         </div>
       </div>

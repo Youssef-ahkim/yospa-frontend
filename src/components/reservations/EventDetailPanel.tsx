@@ -1,13 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { 
   Reservation, 
   ReservationStatus, 
-  RESERVATION_STATUSES, 
   ALLOWED_STATUS_TRANSITIONS 
 } from "@/types";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Spinner } from "@/components/ui/Spinner";
 import { 
   X, 
   User, 
@@ -20,7 +21,6 @@ import {
   CheckCircle2, 
   CheckCheck, 
   XCircle, 
-  Loader2, 
   ExternalLink 
 } from "lucide-react";
 
@@ -39,13 +39,25 @@ export function EventDetailPanel({
   onCancelClick,
   isUpdating,
 }: EventDetailPanelProps) {
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   const clientName = reservation.client?.full_name || "Unknown Client";
   const serviceName = reservation.service?.name || "General Service";
-  const statusConfig = RESERVATION_STATUSES[reservation.status] || {
-    label: reservation.status,
-    badgeClass: "bg-gray-100 text-gray-700 border-gray-200",
-    dotClass: "bg-gray-400",
-  };
   const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[reservation.status] || [];
 
   const startTimeStr = reservation.start_time
@@ -74,12 +86,7 @@ export function EventDetailPanel({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div className="flex items-center gap-2.5">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border capitalize ${statusConfig.badgeClass}`}
-            >
-              <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`} />
-              {statusConfig.label}
-            </span>
+            <StatusBadge status={reservation.status} />
             <span className="text-xs text-gray-400 font-mono">#{reservation.id}</span>
           </div>
           <button
@@ -181,7 +188,7 @@ export function EventDetailPanel({
         <div className="pt-2 border-t border-gray-100">
           {isUpdating ? (
             <div className="flex items-center justify-center py-2 text-sm text-gray-500 gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+              <Spinner className="w-4 h-4 text-indigo-600" />
               <span>Updating reservation status...</span>
             </div>
           ) : allowedTransitions.length === 0 ? (

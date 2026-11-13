@@ -32,7 +32,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const add = useCallback((message: string, variant: ToastVariant) => {
     const id = ++nextId;
     setToasts((prev) => [...prev.slice(-3), { id, message, variant }]); // max 4 visible
-    setTimeout(() => dismiss(id), 4000);
+    const duration = variant === "error" ? 6000 : 4000;
+    setTimeout(() => dismiss(id), duration);
   }, [dismiss]);
 
   const toast = {
