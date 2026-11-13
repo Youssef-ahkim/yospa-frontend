@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, User } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import { Sparkles, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 
 interface LoginResponse {
   message?: string;
@@ -14,9 +15,10 @@ interface LoginResponse {
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login, user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
 
@@ -48,35 +50,105 @@ export default function LoginPage() {
 
   if (isAuthLoading || user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-            Sign in to Yospa
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Enter your credentials to access your spa management portal
-          </p>
+    <div className="min-h-screen flex">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 flex-col justify-between p-12">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -right-16 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-400/10 rounded-full blur-2xl" />
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-            {error}
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
-        )}
+          <span className="text-white font-bold text-xl tracking-tight">Yospa</span>
+        </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label 
-                htmlFor="email" 
+        {/* Center content */}
+        <div className="relative space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-white/90 text-xs font-medium">Spa & Wellness Management</span>
+          </div>
+          <h1 className="text-4xl font-extrabold text-white leading-tight tracking-tight">
+            Manage your spa<br />
+            <span className="text-indigo-200">with precision.</span>
+          </h1>
+          <p className="text-indigo-200 text-base leading-relaxed max-w-sm">
+            A powerful platform for managing clients, bookings, services, and revenue — all in one place.
+          </p>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {["Client Profiles", "Reservations", "Revenue Tracking", "Multi-Tenant"].map((f) => (
+              <span
+                key={f}
+                className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white/80 text-xs font-medium backdrop-blur-sm"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="relative">
+          <p className="text-indigo-300/70 text-xs">
+            © {new Date().getFullYear()} Yospa Management · All rights reserved
+          </p>
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 px-6 py-12">
+        <div className="w-full max-w-md space-y-8">
+          {/* Mobile logo */}
+          <div className="flex lg:hidden items-center gap-2 justify-center">
+            <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-200">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">Yospa</span>
+          </div>
+
+          {/* Heading */}
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+              Welcome back
+            </h2>
+            <p className="text-sm text-gray-500">
+              Sign in to your Yospa management portal
+            </p>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-700"
               >
                 Email address
@@ -89,42 +161,57 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="block w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white shadow-sm placeholder-gray-400 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-300"
                 placeholder="you@example.com"
               />
             </div>
 
-            <div>
-              <label 
-                htmlFor="password" 
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
               >
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full px-4 py-2.5 pr-11 border border-gray-200 rounded-xl bg-white shadow-sm placeholder-gray-400 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-300"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-0.5 cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in to Yospa"
+              )}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

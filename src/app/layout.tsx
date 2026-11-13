@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Yospa Management",
   description: "Multi-tenant gym and spa management platform.",
+  icons: {
+    icon: "/favi.png",
+  },
 };
 
 export default function RootLayout({

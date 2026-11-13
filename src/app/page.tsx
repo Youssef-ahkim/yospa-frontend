@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Users, Calendar, ShieldCheck } from "lucide-react";
-import { Sparkles } from "lucide-react";
+import { Users, Calendar, ShieldCheck, Sparkles, ArrowRight, Zap } from "lucide-react";
 import { NavAuthButton, HeroAuthButton, FooterAuthLink } from "@/components/AuthButtons";
 
 async function CurrentYear() {
@@ -10,82 +9,146 @@ async function CurrentYear() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-white text-gray-900 flex flex-col">
       {/* Navbar */}
-      <header className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-100">
-            Y
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100/80">
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-200/50">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-lg font-bold tracking-tight text-gray-900">Yospa</span>
           </div>
-          <span className="text-xl font-bold tracking-tight text-gray-900">Yospa</span>
-        </div>
-        <div>
           <NavAuthButton />
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero */}
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold uppercase tracking-wider mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            Modern Spa & Gym Management
+        <div className="relative overflow-hidden">
+          {/* Background gradient blobs */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-indigo-100 to-violet-100 rounded-full blur-3xl opacity-60" />
+            <div className="absolute top-20 -left-20 w-96 h-96 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full blur-3xl opacity-50" />
           </div>
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-gray-900 max-w-3xl mx-auto leading-tight">
-            Streamline your spa operations with{" "}
-            <span className="text-indigo-600">precision</span>
-          </h1>
-          <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto">
-            A powerful multi-tenant platform designed to manage clients, track reservations, and scale your wellness business seamlessly.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <HeroAuthButton />
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-36 text-center">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/70 text-indigo-700 text-xs font-semibold uppercase tracking-wider mb-8 shadow-sm">
+              <Zap className="w-3.5 h-3.5 fill-indigo-500 text-indigo-500" />
+              Modern Spa &amp; Gym Management
+            </div>
+            <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-gray-900 max-w-4xl mx-auto leading-[1.08]">
+              Run your spa{" "}
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                smarter.
+              </span>
+            </h1>
+            <p className="mt-7 text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
+              A powerful multi-tenant platform to manage clients, track reservations, monitor revenue, and scale your wellness business — all in one place.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+              <HeroAuthButton />
+              <Link
+                href="#features"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-base font-medium text-gray-700 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all"
+              >
+                See features
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Stats row */}
+            <div className="mt-16 flex flex-wrap justify-center gap-8 sm:gap-16">
+              {[
+                { label: "Clients managed", value: "10,000+" },
+                { label: "Reservations tracked", value: "50,000+" },
+                { label: "Uptime", value: "99.9%" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-xs text-gray-400 mt-1 font-medium">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Features Grid */}
-        <div className="bg-gray-50 py-20 border-t border-b border-gray-100">
+        <div id="features" className="py-24 border-t border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                  <Users className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Client Management</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Keep detailed customer records, view contact details, and seamlessly onboard new members to your spa.
-                </p>
-              </div>
+            <div className="text-center mb-14">
+              <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+                Everything you need to run your spa
+              </h2>
+              <p className="mt-3 text-gray-500 text-base max-w-xl mx-auto">
+                Built for spa and gym managers who want a clean, fast, and reliable tool.
+              </p>
+            </div>
 
-              <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                  <Calendar className="w-6 h-6" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  icon: Users,
+                  title: "Client Management",
+                  description: "Keep rich customer profiles, view appointment histories, contact details, and onboard new members effortlessly.",
+                  color: "indigo",
+                },
+                {
+                  icon: Calendar,
+                  title: "Reservation Tracking",
+                  description: "Monitor schedules in a visual calendar, manage booking statuses, and get instant overviews of your daily operations.",
+                  color: "violet",
+                },
+                {
+                  icon: ShieldCheck,
+                  title: "Multi-Tenant Security",
+                  description: "Enterprise-grade tenant isolation keeps each facility's data private, secure, and completely scoped to their account.",
+                  color: "blue",
+                },
+              ].map(({ icon: Icon, title, description, color }) => (
+                <div
+                  key={title}
+                  className="group bg-white p-7 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 space-y-4"
+                >
+                  <div className={`w-11 h-11 rounded-xl bg-${color}-50 flex items-center justify-center text-${color}-600 group-hover:bg-${color}-100 transition-colors`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Reservation Tracking</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Monitor service schedules, check live booking statuses, and manage pricing in real-time.
-                </p>
-              </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-              <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Multi-Tenant Security</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Enterprise-grade data isolation ensuring your facility data remains private, secure, and scoped.
-                </p>
-              </div>
+        {/* CTA Section */}
+        <div className="py-20 border-t border-gray-100 bg-gradient-to-br from-indigo-600 to-violet-700">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Ready to streamline your operations?
+            </h2>
+            <p className="mt-4 text-indigo-200 text-base">
+              Join spa managers who trust Yospa to run their businesses every day.
+            </p>
+            <div className="mt-8">
+              <HeroAuthButton />
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between text-sm text-gray-500 border-t border-gray-100">
-        <p>© <CurrentYear /> Yospa Management. All rights reserved.</p>
-        <div className="flex items-center gap-6 mt-4 sm:mt-0">
-          <FooterAuthLink />
+      <footer className="bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-md flex items-center justify-center">
+              <Sparkles className="w-3 h-3 text-white" />
+            </div>
+            <span>© <CurrentYear /> Yospa Management. All rights reserved.</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <FooterAuthLink />
+          </div>
         </div>
       </footer>
     </div>
