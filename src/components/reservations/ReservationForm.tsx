@@ -44,10 +44,10 @@ export function ReservationForm({
   fieldErrors = {},
 }: ReservationFormProps) {
   const inputCls = (field?: string) =>
-    `w-full px-3 py-2 border rounded-lg shadow-xs focus:outline-none focus:ring-2 text-sm transition-colors ${
+    `w-full px-3.5 py-2.5 border rounded-xl shadow-xs focus:outline-none focus:ring-2 text-sm transition-colors ${
       field && fieldErrors[field]
-        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-        : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+        ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+        : "border-[#EAE4F2] focus:ring-[#7455A4] focus:border-[#7455A4] hover:border-[#C9B8E2] text-[#33283D] bg-white"
     }`;
 
   return (
@@ -55,14 +55,14 @@ export function ReservationForm({
       open={open}
       onClose={onClose}
       title="New Reservation"
-      icon={<Calendar className="w-4 h-4 text-indigo-600" />}
+      icon={<Calendar className="w-4 h-4 text-[#7455A4]" />}
       width="max-w-lg"
       footer={
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition-colors cursor-pointer"
+            className="flex-1 py-2.5 px-4 border border-[#EAE4F2] rounded-xl text-sm font-medium text-[#33283D] bg-white hover:bg-[#FAF8FC] transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -70,7 +70,7 @@ export function ReservationForm({
             type="submit"
             form="create-reservation-form"
             disabled={isSubmitting || clients.length === 0}
-            className="flex-1 py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-[#7455A4] hover:bg-[#5E4387] disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
           >
             {isSubmitting && <Spinner className="w-4 h-4" />}
             {isSubmitting ? "Creating..." : "Save Reservation"}
@@ -85,7 +85,7 @@ export function ReservationForm({
           required
           error={fieldErrors.client_id?.[0]}
           labelExtra={
-            <Link href="/dashboard/clients" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link href="/dashboard/clients" className="text-xs text-[#7455A4] hover:text-[#5E4387] font-semibold">
               + Add New Client
             </Link>
           }

@@ -6,16 +6,32 @@ import { Client, Reservation } from "@/types";
 import { isToday, isThisMonth } from "@/lib/dates";
 import { parsePrice } from "@/lib/currency";
 
+export interface MonthlyDataPoint {
+  month: string;
+  revenue: number;
+  bookings: number;
+}
+
 export interface DashboardStats {
   todayAppointmentsCount: number;
+  completedCount: number;
+  cancelledCount: number;
   futurePendingCount: number;
   overduePendingCount: number;
   totalClientsCount: number;
   revenueThisMonth: number;
   todaySchedule: Reservation[];
   upcomingPendingShortlist: Reservation[];
+  allRecentReservations: Reservation[];
   recentClients: Client[];
   totalReservationsCount: number;
+  topService: {
+    name: string;
+    duration: number;
+    price: number;
+    bookingsCount: number;
+  } | null;
+  monthlyTrend: MonthlyDataPoint[];
 }
 
 export function useDashboardData() {
@@ -28,14 +44,11 @@ export function useDashboardData() {
       setIsLoading(true);
       setError(null);
 
-      // Fetch clients and reservations in parallel.
-      // If either fails, Promise.all rejects so we don't display a partial dashboard.
       const [clients, reservations] = await Promise.all([
         apiFetch<Client[]>("/clients"),
         apiFetch<Reservation[]>("/reservations"),
       ]);
 
-      // Reference time computed at render/fetch time
       const now = new Date();
 
       // 1. Today's appointments (excluding cancelled)
@@ -43,39 +56,100 @@ export function useDashboardData() {
         (r) => isToday(r.start_time, now) && r.status !== "cancelled"
       ).length;
 
-      // 2. Pending reservations split into future (shortlist eligible) vs overdue
+      // 2. Completed & Cancelled count
+      const completedCount = reservations.filter((r) => r.status === "completed").length;
+      const cancelledCount = reservations.filter((r) => r.status === "cancelled").length;
+
+      // 3. Pending reservations split into future vs overdue
       const allPending = reservations.filter((r) => r.status === "pending");
       const futurePending = allPending.filter((r) => new Date(r.start_time) >= now);
       const overduePending = allPending.filter((r) => new Date(r.start_time) < now);
 
-      // 3. Revenue this month (completed appointments only)
+      // 4. Revenue this month (completed appointments only)
       const revenueThisMonth = reservations
         .filter((r) => r.status === "completed" && isThisMonth(r.start_time, now))
         .reduce((sum, r) => sum + parsePrice(r.total_price), 0);
 
-      // 4. Today's schedule sorted chronologically by start_time
+      // 5. Today's schedule sorted chronologically
       const todaySchedule = reservations
         .filter((r) => isToday(r.start_time, now))
         .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-      // 5. Upcoming pending shortlist (next 5 future pending reservations)
+      // 6. Upcoming pending shortlist
       const upcomingPendingShortlist = futurePending
         .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
         .slice(0, 5);
 
-      // 6. Recent clients
+      // 7. Recent reservations (most recent first, for the table)
+      const allRecentReservations = [...reservations]
+        .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
+        .slice(0, 8);
+
+      // 8. Recent clients
       const recentClients = clients.slice(0, 5);
+
+      // 9. Top service calculation
+      const serviceMap = new Map<string, { name: string; duration: number; price: number; count: number }>();
+      reservations.forEach((r) => {
+        if (r.service?.name) {
+          const key = r.service.name;
+          const curr = serviceMap.get(key) || {
+            name: key,
+            duration: r.service.duration_minutes || 60,
+            price: parsePrice(r.service.price),
+            count: 0,
+          };
+          curr.count += 1;
+          serviceMap.set(key, curr);
+        }
+      });
+      let topService: DashboardStats["topService"] = null;
+      let maxCount = -1;
+      serviceMap.forEach((val) => {
+        if (val.count > maxCount) {
+          maxCount = val.count;
+          topService = {
+            name: val.name,
+            duration: val.duration,
+            price: val.price,
+            bookingsCount: val.count,
+          };
+        }
+      });
+
+      // 10. 12-Month trend aggregation
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const currentYear = now.getFullYear();
+      const monthlyBuckets = months.map((m) => ({ month: m, revenue: 0, bookings: 0 }));
+
+      reservations.forEach((r) => {
+        const d = new Date(r.start_time);
+        if (d.getFullYear() === currentYear) {
+          const mIdx = d.getMonth();
+          if (mIdx >= 0 && mIdx < 12) {
+            monthlyBuckets[mIdx].bookings += 1;
+            if (r.status === "completed") {
+              monthlyBuckets[mIdx].revenue += parsePrice(r.total_price);
+            }
+          }
+        }
+      });
 
       setData({
         todayAppointmentsCount,
+        completedCount,
+        cancelledCount,
         futurePendingCount: futurePending.length,
         overduePendingCount: overduePending.length,
         totalClientsCount: clients.length,
         revenueThisMonth,
         todaySchedule,
         upcomingPendingShortlist,
+        allRecentReservations,
         recentClients,
         totalReservationsCount: reservations.length,
+        topService,
+        monthlyTrend: monthlyBuckets,
       });
     } catch (err: any) {
       setError(err?.message || "Failed to load dashboard data. Please check your connection.");
@@ -96,4 +170,3 @@ export function useDashboardData() {
     refetch: fetchData,
   };
 }
-

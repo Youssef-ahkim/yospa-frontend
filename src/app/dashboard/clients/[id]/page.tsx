@@ -23,7 +23,7 @@ export default function ClientDetailPage() {
     <Suspense
       fallback={
         <div className="flex justify-center items-center py-24">
-          <Spinner className="w-8 h-8 text-indigo-600" />
+          <Spinner className="w-8 h-8 text-[#7455A4]" />
         </div>
       }
     >
@@ -234,7 +234,7 @@ function ClientDetailContent() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-24">
-        <Spinner className="w-8 h-8 text-indigo-600" />
+        <Spinner className="w-8 h-8 text-[#7455A4]" />
       </div>
     );
   }
@@ -244,12 +244,12 @@ function ClientDetailContent() {
       <div className="space-y-6">
         <Link
           href="/dashboard/clients"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#7A6F86] hover:text-[#33283D] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Clients
         </Link>
-        <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-start gap-3">
+        <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-700 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
           <div>
             <h3 className="font-semibold text-sm">Error Loading Client</h3>
@@ -267,16 +267,16 @@ function ClientDetailContent() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/clients"
-            className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+            className="p-2.5 rounded-xl border border-[#EAE4F2] bg-white hover:bg-[#FAF8FC] text-[#33283D] transition-colors cursor-pointer"
             title="Back to Clients"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-[#33283D] flex items-center gap-2 tracking-tight">
               {client.full_name}
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-[#7A6F86] mt-0.5">
               Client Profile and Appointment History
             </p>
           </div>
@@ -285,14 +285,14 @@ function ClientDetailContent() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleOpenEdit}
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#EAE4F2] rounded-xl text-sm font-semibold text-[#33283D] bg-white hover:bg-[#FAF8FC] shadow-xs transition-colors cursor-pointer"
           >
-            <Edit3 className="w-4 h-4 text-gray-500" />
+            <Edit3 className="w-4 h-4 text-[#7A6F86]" />
             Edit Profile
           </button>
           <button
             onClick={() => setIsDeleteOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 shadow-xs transition-colors cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
             Delete

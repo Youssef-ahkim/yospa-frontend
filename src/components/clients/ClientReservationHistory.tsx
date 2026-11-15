@@ -8,10 +8,10 @@ import {
 } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
+import { formatCurrency } from "@/lib/currency";
 import {
   Calendar,
   Clock,
-  DollarSign,
   Tag,
   CheckCircle2,
   CheckCheck,
@@ -34,14 +34,14 @@ export function ClientReservationHistory({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Appointment History</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h2 className="text-lg font-bold text-[#33283D]">Appointment History</h2>
+          <p className="text-xs text-[#7A6F86] mt-0.5">
             All reservations booked for this client
           </p>
         </div>
         <Link
           href="/dashboard/reservations"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-xl transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           Book Reservation
@@ -49,38 +49,38 @@ export function ClientReservationHistory({
       </div>
 
       {reservations.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center space-y-3 shadow-xs">
-          <Calendar className="w-10 h-10 text-gray-300 mx-auto" />
-          <h3 className="text-sm font-semibold text-gray-900">No Reservations Found</h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+        <div className="bg-white rounded-2xl border border-[#EAE4F2] p-12 text-center space-y-3 shadow-xs">
+          <Calendar className="w-10 h-10 text-[#C9B8E2] mx-auto" />
+          <h3 className="text-sm font-semibold text-[#33283D]">No Reservations Found</h3>
+          <p className="text-xs text-[#7A6F86] max-w-sm mx-auto">
             This client does not have any appointments recorded yet.
           </p>
         </div>
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden sm:block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-xs">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="hidden sm:block bg-white border border-[#EAE4F2] rounded-2xl overflow-hidden shadow-xs">
+            <table className="min-w-full divide-y divide-[#EAE4F2]">
+              <thead className="bg-[#FAF8FC]">
                 <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                     Service
                   </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                     Date & Time
                   </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                     Price
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
+              <tbody className="divide-y divide-[#FAF8FC] bg-white">
                 {reservations.map((res) => {
                   const serviceName = res.service?.name || "General Service";
                   const startTime = res.start_time;
@@ -89,36 +89,33 @@ export function ClientReservationHistory({
                   const isRowUpdating = updatingResId === res.id;
 
                   return (
-                    <tr key={res.id} className="hover:bg-gray-50/80 transition-colors">
+                    <tr key={res.id} className="hover:bg-[#FAF8FC] transition-colors">
                       <td className="px-5 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                          <Tag className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[#33283D]">
+                          <Tag className="w-4 h-4 text-[#9275BC] flex-shrink-0" />
                           {serviceName}
                         </div>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <StatusBadge status={res.status} />
                       </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-5 py-3.5 whitespace-nowrap text-sm text-[#7A6F86]">
                         <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          <Clock className="w-3.5 h-3.5 text-[#7A6F86]/70" />
                           {startTime ? new Date(startTime).toLocaleString() : "Date N/A"}
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        <div className="flex items-center gap-0.5">
-                          <DollarSign className="w-4 h-4 text-gray-400" />
-                          {Number(formattedPrice).toFixed(2)}
-                        </div>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-sm font-bold text-[#33283D]">
+                        <span>{formatCurrency(formattedPrice)}</span>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap text-right text-sm">
                         {isRowUpdating ? (
-                          <div className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-                            <Spinner className="w-3.5 h-3.5 text-indigo-600" />
+                          <div className="inline-flex items-center gap-1.5 text-xs text-[#7A6F86]">
+                            <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />
                             Updating...
                           </div>
                         ) : allowedNextStatuses.length === 0 ? (
-                          <span className="text-xs text-gray-400 italic">No actions</span>
+                          <span className="text-xs text-[#7A6F86]/60 italic">No actions</span>
                         ) : (
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {allowedNextStatuses.includes("confirmed") && (
@@ -126,7 +123,7 @@ export function ClientReservationHistory({
                                 type="button"
                                 disabled={isRowUpdating}
                                 onClick={() => onStatusChange(res, "confirmed")}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors cursor-pointer border border-emerald-200"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-lg transition-colors cursor-pointer border border-[#C9B8E2]"
                               >
                                 <CheckCircle2 className="w-3 h-3" /> Confirm
                               </button>
@@ -136,7 +133,7 @@ export function ClientReservationHistory({
                                 type="button"
                                 disabled={isRowUpdating}
                                 onClick={() => onStatusChange(res, "completed")}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer border border-blue-200"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-lg transition-colors cursor-pointer border border-[#91A68D]/30"
                               >
                                 <CheckCheck className="w-3 h-3" /> Complete
                               </button>
@@ -146,7 +143,7 @@ export function ClientReservationHistory({
                                 type="button"
                                 disabled={isRowUpdating}
                                 onClick={() => onStatusChange(res, "cancelled")}
-                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors cursor-pointer border border-red-200"
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 rounded-lg transition-colors cursor-pointer border border-[#FECDD3]"
                               >
                                 <XCircle className="w-3 h-3" /> Cancel
                               </button>
@@ -171,42 +168,41 @@ export function ClientReservationHistory({
               const isRowUpdating = updatingResId === res.id;
 
               return (
-                <div key={res.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-3">
+                <div key={res.id} className="bg-white border border-[#EAE4F2] rounded-2xl p-4 shadow-xs space-y-3">
                   {/* Top row */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Tag className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                      <span className="text-sm font-semibold text-gray-900 truncate">{serviceName}</span>
+                      <Tag className="w-4 h-4 text-[#9275BC] flex-shrink-0" />
+                      <span className="text-sm font-semibold text-[#33283D] truncate">{serviceName}</span>
                     </div>
                     <StatusBadge status={res.status} className="text-[11px]" />
                   </div>
 
                   {/* Meta row */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-[#7A6F86]">
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
+                      <Clock className="w-3.5 h-3.5 text-[#7A6F86]/70" />
                       {startTime ? new Date(startTime).toLocaleString() : "Date N/A"}
                     </div>
-                    <div className="flex items-center gap-0.5 font-semibold text-gray-800">
-                      <DollarSign className="w-3.5 h-3.5 text-gray-400" />
-                      {Number(formattedPrice).toFixed(2)}
+                    <div className="font-bold text-[#33283D]">
+                      {formatCurrency(formattedPrice)}
                     </div>
                   </div>
 
                   {/* Actions */}
                   {isRowUpdating ? (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                      <Spinner className="w-3.5 h-3.5 text-indigo-600" />
+                    <div className="flex items-center gap-1.5 text-xs text-[#7A6F86]">
+                      <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />
                       Updating...
                     </div>
                   ) : (
                     allowedNextStatuses.length > 0 && (
-                      <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                      <div className="flex items-center gap-2 pt-1 border-t border-[#EAE4F2]">
                         {allowedNextStatuses.includes("confirmed") && (
                           <button
                             type="button"
                             onClick={() => onStatusChange(res, "confirmed")}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-xl border border-[#C9B8E2] transition-colors cursor-pointer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Confirm
                           </button>
@@ -215,7 +211,7 @@ export function ClientReservationHistory({
                           <button
                             type="button"
                             onClick={() => onStatusChange(res, "completed")}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-xl border border-[#91A68D]/30 transition-colors cursor-pointer"
                           >
                             <CheckCheck className="w-3.5 h-3.5" /> Complete
                           </button>
@@ -224,7 +220,7 @@ export function ClientReservationHistory({
                           <button
                             type="button"
                             onClick={() => onStatusChange(res, "cancelled")}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 rounded-xl border border-[#FECDD3] transition-colors cursor-pointer"
                           >
                             <XCircle className="w-3.5 h-3.5" /> Cancel
                           </button>

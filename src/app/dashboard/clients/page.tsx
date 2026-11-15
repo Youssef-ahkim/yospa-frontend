@@ -109,7 +109,7 @@ export default function ClientsPage() {
     `w-full px-3.5 py-2.5 border rounded-xl text-sm transition-all focus:outline-none focus:ring-2 ${
       fieldErrors[field]
         ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
-        : "border-gray-200 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-300 bg-white"
+        : "border-[#EAE4F2] focus:ring-[#7455A4] focus:border-[#7455A4] hover:border-[#C9B8E2] bg-white text-[#33283D]"
     }`;
 
   return (
@@ -117,14 +117,14 @@ export default function ClientsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Clients</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-extrabold text-[#33283D] tracking-tight">Clients</h1>
+          <p className="text-sm text-[#7A6F86] mt-0.5">
             Manage your spa members and customer contacts
           </p>
         </div>
         <button
           onClick={openModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-200/50 transition-all duration-200 cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7455A4] hover:bg-[#5E4387] text-white font-semibold text-sm rounded-xl shadow-xs transition-all duration-200 cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           Add Client
@@ -133,18 +133,18 @@ export default function ClientsPage() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-[#7A6F86] absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           placeholder="Search by name, email, or phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white shadow-sm hover:border-gray-300 transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] text-sm bg-white shadow-xs hover:border-[#C9B8E2] text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -170,79 +170,79 @@ export default function ClientsPage() {
 
       {/* Loading / List */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <Spinner className="w-6 h-6 text-indigo-500 mb-3" />
-          <p className="text-sm text-gray-400">Loading clients...</p>
+        <div className="flex flex-col items-center justify-center py-20 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
+          <Spinner className="w-6 h-6 text-[#7455A4] mb-3" />
+          <p className="text-sm text-[#7A6F86]">Loading clients...</p>
         </div>
       ) : filteredClients.length === 0 ? (
-        <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">
+        <div className="text-center py-20 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
+          <Users className="w-10 h-10 text-[#C9B8E2] mx-auto mb-3" />
+          <p className="text-sm font-semibold text-[#33283D]">
             {searchQuery ? "No clients match your search." : "No clients yet."}
           </p>
           {!searchQuery && (
-            <p className="text-xs text-gray-400 mt-1">Add your first client to get started.</p>
+            <p className="text-xs text-[#7A6F86] mt-1">Add your first client to get started.</p>
           )}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          <table className="min-w-full divide-y divide-gray-100">
-            <thead className="bg-gray-50/80">
+        <div className="bg-white border border-[#EAE4F2] rounded-2xl overflow-hidden shadow-xs">
+          <table className="min-w-full divide-y divide-[#EAE4F2]">
+            <thead className="bg-[#FAF8FC]">
               <tr>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
                   Client
                 </th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
                   Contact
                 </th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider hidden sm:table-cell">
                   Joined
                 </th>
-                <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
+            <tbody className="divide-y divide-[#FAF8FC] bg-white">
               {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-indigo-50/30 transition-colors group">
+                <tr key={client.id} className="hover:bg-[#FAF8FC] transition-colors group">
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-indigo-600">
+                      <div className="w-8 h-8 rounded-full bg-[#F0EAF7] border border-[#C9B8E2]/50 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-[#7455A4]">
                           {(client.full_name || "?")[0].toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-indigo-700 transition-colors">
+                      <span className="text-sm font-semibold text-[#33283D] group-hover:text-[#7455A4] transition-colors">
                         {client.full_name}
                       </span>
                     </Link>
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <div className="flex flex-col gap-0.5 text-sm text-gray-500">
+                    <div className="flex flex-col gap-0.5 text-sm text-[#7A6F86]">
                       {client.email ? (
                         <span className="flex items-center gap-1.5 text-xs">
-                          <Mail className="w-3 h-3 text-gray-300" />
+                          <Mail className="w-3 h-3 text-[#9275BC]" />
                           {client.email}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-300 italic">No email</span>
+                        <span className="text-xs text-[#7A6F86]/60 italic">No email</span>
                       )}
                       {client.phone && (
-                        <span className="flex items-center gap-1.5 text-xs text-gray-400">
-                          <Phone className="w-3 h-3 text-gray-300" />
+                        <span className="flex items-center gap-1.5 text-xs text-[#7A6F86]">
+                          <Phone className="w-3 h-3 text-[#9275BC]" />
                           {client.phone}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-xs text-gray-400 hidden sm:table-cell">
+                  <td className="px-5 py-3.5 whitespace-nowrap text-xs text-[#7A6F86] hidden sm:table-cell">
                     {client.created_at ? new Date(client.created_at).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap text-right">
                     <Link
                       href={`/dashboard/clients/${client.id}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7455A4] hover:text-[#5E4387] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-3 py-1.5 rounded-lg transition-colors"
                     >
                       View
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -252,10 +252,10 @@ export default function ClientsPage() {
               ))}
             </tbody>
           </table>
-          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-            <p className="text-xs text-gray-400">
-              Showing <span className="font-semibold text-gray-600">{filteredClients.length}</span> of{" "}
-              <span className="font-semibold text-gray-600">{clients.length}</span> clients
+          <div className="px-5 py-3 border-t border-[#EAE4F2] bg-[#FAF8FC] flex items-center justify-between">
+            <p className="text-xs text-[#7A6F86]">
+              Showing <span className="font-semibold text-[#33283D]">{filteredClients.length}</span> of{" "}
+              <span className="font-semibold text-[#33283D]">{clients.length}</span> clients
             </p>
           </div>
         </div>
@@ -267,13 +267,13 @@ export default function ClientsPage() {
         onClose={() => setIsModalOpen(false)}
         title="Add New Client"
         description="Fill in the client's details below"
-        icon={<UserPlus className="w-4 h-4 text-indigo-600" />}
+        icon={<UserPlus className="w-4 h-4 text-[#7455A4]" />}
         footer={
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-2.5 px-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+              className="flex-1 py-2.5 px-4 border border-[#EAE4F2] rounded-xl text-sm font-medium text-[#33283D] bg-white hover:bg-[#FAF8FC] transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -281,7 +281,7 @@ export default function ClientsPage() {
               type="submit"
               form="create-client-form"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-[#7455A4] hover:bg-[#5E4387] disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               {isSubmitting && <Spinner className="w-4 h-4" />}
               {isSubmitting ? "Saving..." : "Save Client"}
@@ -327,7 +327,7 @@ export default function ClientsPage() {
               rows={4}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-300 bg-white transition-colors resize-none"
+              className="w-full px-3.5 py-2.5 border border-[#EAE4F2] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] hover:border-[#C9B8E2] bg-white text-[#33283D] placeholder-[#7A6F86]/60 transition-colors resize-none"
               placeholder="Preferences, allergies, or special requests..."
             />
           </FormField>

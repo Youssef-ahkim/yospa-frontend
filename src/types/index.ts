@@ -45,23 +45,23 @@ export interface ReservationStatusConfig {
 export const RESERVATION_STATUSES: Record<ReservationStatus, ReservationStatusConfig> = {
   pending: {
     label: "Pending",
-    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
-    dotClass: "bg-amber-500",
+    badgeClass: "bg-[#FFF8EE] text-[#B45309] border-[#FDE68A]",
+    dotClass: "bg-[#F59E0B]",
   },
   confirmed: {
     label: "Confirmed",
-    badgeClass: "bg-green-50 text-green-700 border-green-200",
-    dotClass: "bg-green-500",
+    badgeClass: "bg-[#F0EAF7] text-[#7455A4] border-[#C9B8E2]",
+    dotClass: "bg-[#7455A4]",
   },
   completed: {
     label: "Completed",
-    badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
-    dotClass: "bg-blue-500",
+    badgeClass: "bg-[#91A68D]/15 text-[#91A68D] border-[#91A68D]/30",
+    dotClass: "bg-[#91A68D]",
   },
   cancelled: {
     label: "Cancelled",
-    badgeClass: "bg-red-50 text-red-700 border-red-200",
-    dotClass: "bg-red-500",
+    badgeClass: "bg-[#FFF1F2] text-[#BE123C] border-[#FECDD3]",
+    dotClass: "bg-[#F43F5E]",
   },
 };
 

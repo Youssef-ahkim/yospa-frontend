@@ -9,6 +9,7 @@ import {
 } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
+import { formatCurrency } from "@/lib/currency";
 import { 
   X, 
   User, 
@@ -16,7 +17,7 @@ import {
   Mail, 
   Tag, 
   Clock, 
-  DollarSign, 
+  Coins, 
   FileText, 
   CheckCircle2, 
   CheckCheck, 
@@ -82,16 +83,16 @@ export function EventDetailPanel({
       {/* Click outside to close */}
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative z-10 bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative z-10 bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#EAE4F2] space-y-5 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div className="flex items-center justify-between border-b border-[#EAE4F2] pb-4">
           <div className="flex items-center gap-2.5">
             <StatusBadge status={reservation.status} />
-            <span className="text-xs text-gray-400 font-mono">#{reservation.id}</span>
+            <span className="text-xs text-[#7A6F86] font-mono">#{reservation.id}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC] transition-colors cursor-pointer"
             title="Close"
           >
             <X className="w-5 h-5" />
@@ -101,38 +102,38 @@ export function EventDetailPanel({
         {/* Client & Service Info */}
         <div className="space-y-4">
           {/* Client Card */}
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+          <div className="p-3.5 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2] space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                <div className="w-8 h-8 rounded-lg bg-[#F0EAF7] border border-[#C9B8E2]/50 flex items-center justify-center text-[#7455A4]">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
                   {reservation.client?.id ? (
                     <Link
                       href={`/dashboard/clients/${reservation.client.id}`}
-                      className="text-sm font-bold text-gray-900 hover:text-indigo-600 transition-colors inline-flex items-center gap-1"
+                      className="text-sm font-bold text-[#33283D] hover:text-[#7455A4] transition-colors inline-flex items-center gap-1"
                     >
                       {clientName}
-                      <ExternalLink className="w-3 h-3 text-gray-400" />
+                      <ExternalLink className="w-3 h-3 text-[#7A6F86]" />
                     </Link>
                   ) : (
-                    <span className="text-sm font-bold text-gray-900">{clientName}</span>
+                    <span className="text-sm font-bold text-[#33283D]">{clientName}</span>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 pt-1">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-[#7A6F86] pt-1">
               {reservation.client?.phone && (
                 <span className="flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-gray-400" />
+                  <Phone className="w-3.5 h-3.5 text-[#9275BC]" />
                   {reservation.client.phone}
                 </span>
               )}
               {reservation.client?.email && (
                 <span className="flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-gray-400" />
+                  <Mail className="w-3.5 h-3.5 text-[#9275BC]" />
                   {reservation.client.email}
                 </span>
               )}
@@ -141,58 +142,58 @@ export function EventDetailPanel({
 
           {/* Details Grid */}
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-indigo-500" /> Service
+            <div className="p-3 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2]">
+              <span className="text-xs text-[#7A6F86] font-semibold flex items-center gap-1">
+                <Tag className="w-3.5 h-3.5 text-[#9275BC]" /> Service
               </span>
-              <p className="font-semibold text-gray-900 mt-1">{serviceName}</p>
+              <p className="font-bold text-[#33283D] mt-1">{serviceName}</p>
               {reservation.service?.duration_minutes && (
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-[#7A6F86] mt-0.5">
                   {reservation.service.duration_minutes} minutes
                 </p>
               )}
             </div>
 
-            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-500" /> Price
+            <div className="p-3 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2]">
+              <span className="text-xs text-[#7A6F86] font-semibold flex items-center gap-1">
+                <Coins className="w-3.5 h-3.5 text-[#91A68D]" /> Price
               </span>
-              <p className="font-semibold text-gray-900 mt-1">
-                ${Number(reservation.total_price ?? 0).toFixed(2)}
+              <p className="font-extrabold text-[#33283D] mt-1">
+                {formatCurrency(reservation.total_price)}
               </p>
             </div>
           </div>
 
           {/* Time & Date */}
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2.5 text-sm text-gray-700">
-            <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <div className="p-3 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2] flex items-center gap-2.5 text-sm text-[#33283D]">
+            <Clock className="w-4 h-4 text-[#7A6F86] flex-shrink-0" />
             <div>
-              <span className="font-medium">{startTimeStr}</span>
-              <span className="text-gray-400 mx-1.5">→</span>
-              <span className="font-medium">{endTimeStr}</span>
+              <span className="font-semibold">{startTimeStr}</span>
+              <span className="text-[#7A6F86] mx-1.5">→</span>
+              <span className="font-semibold">{endTimeStr}</span>
             </div>
           </div>
 
           {/* Notes */}
           {reservation.notes && (
-            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
-              <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                <FileText className="w-3.5 h-3.5 text-gray-400" /> Notes
+            <div className="p-3 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2] space-y-1">
+              <span className="text-xs text-[#7A6F86] font-semibold flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-[#9275BC]" /> Notes
               </span>
-              <p className="text-xs text-gray-700 whitespace-pre-wrap">{reservation.notes}</p>
+              <p className="text-xs text-[#33283D] whitespace-pre-wrap">{reservation.notes}</p>
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-[#EAE4F2]">
           {isUpdating ? (
-            <div className="flex items-center justify-center py-2 text-sm text-gray-500 gap-2">
-              <Spinner className="w-4 h-4 text-indigo-600" />
+            <div className="flex items-center justify-center py-2 text-sm text-[#7A6F86] gap-2">
+              <Spinner className="w-4 h-4 text-[#7455A4]" />
               <span>Updating reservation status...</span>
             </div>
           ) : allowedTransitions.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-1 italic">
+            <p className="text-xs text-[#7A6F86] text-center py-1 italic">
               This reservation is {reservation.status} (terminal state).
             </p>
           ) : (
@@ -201,7 +202,7 @@ export function EventDetailPanel({
                 <button
                   type="button"
                   onClick={() => onStatusChange(reservation, "confirmed")}
-                  className="flex-1 py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+                  className="flex-1 py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] border border-[#C9B8E2] rounded-xl transition-colors cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Confirm
@@ -212,7 +213,7 @@ export function EventDetailPanel({
                 <button
                   type="button"
                   onClick={() => onStatusChange(reservation, "completed")}
-                  className="flex-1 py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                  className="flex-1 py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 border border-[#91A68D]/30 rounded-xl transition-colors cursor-pointer"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
                   Complete
@@ -223,7 +224,7 @@ export function EventDetailPanel({
                 <button
                   type="button"
                   onClick={() => onCancelClick(reservation)}
-                  className="flex-1 py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
+                  className="flex-1 py-2 px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 border border-[#FECDD3] rounded-xl transition-colors cursor-pointer"
                 >
                   <XCircle className="w-3.5 h-3.5" />
                   Cancel

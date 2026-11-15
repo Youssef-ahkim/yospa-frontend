@@ -33,7 +33,7 @@ export function ClientEditSlideOver({
     `w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 bg-white transition-colors ${
       fieldErrors[field]
         ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-        : "border-gray-200 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-300"
+        : "border-[#EAE4F2] focus:ring-[#7455A4] focus:border-[#7455A4] hover:border-[#C9B8E2] text-[#33283D]"
     }`;
 
   return (
@@ -42,13 +42,13 @@ export function ClientEditSlideOver({
       onClose={onClose}
       title="Edit Client"
       description="Update the client's information"
-      icon={<Edit3 className="w-4 h-4 text-indigo-600" />}
+      icon={<Edit3 className="w-4 h-4 text-[#7455A4]" />}
       footer={
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+            className="flex-1 py-2.5 px-4 border border-[#EAE4F2] rounded-xl text-sm font-medium text-[#33283D] bg-white hover:bg-[#FAF8FC] transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -56,7 +56,7 @@ export function ClientEditSlideOver({
             type="submit"
             form="edit-client-form"
             disabled={isUpdating}
-            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-[#7455A4] hover:bg-[#5E4387] disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
           >
             {isUpdating && <Spinner className="w-4 h-4" />}
             {isUpdating ? "Saving..." : "Save Changes"}
@@ -102,7 +102,7 @@ export function ClientEditSlideOver({
             rows={4}
             value={formData.notes}
             onChange={(e) => onFormDataChange({ ...formData, notes: e.target.value })}
-            className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-300 bg-white transition-colors resize-none"
+            className="w-full px-3.5 py-2.5 border border-[#EAE4F2] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] hover:border-[#C9B8E2] bg-white text-[#33283D] placeholder-[#7A6F86]/60 transition-colors resize-none"
             placeholder="Preferences, allergy information, or special requests..."
           />
         </FormField>

@@ -80,24 +80,24 @@ export function SlideOver({
         className={`relative w-full ${width} bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAE4F2] flex-shrink-0">
           <div className="flex items-center gap-3">
             {icon && (
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-[#F0EAF7] flex items-center justify-center">
                 {icon}
               </div>
             )}
             <div>
-              <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+              <h2 className="text-base font-bold text-[#33283D]">{title}</h2>
               {description && (
-                <p className="text-xs text-gray-400">{description}</p>
+                <p className="text-xs text-[#7A6F86]">{description}</p>
               )}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC] cursor-pointer transition-colors"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -108,7 +108,7 @@ export function SlideOver({
         <div className="flex-1 overflow-y-auto">{children}</div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 p-5 border-t border-gray-100 bg-gray-50/60">
+        <div className="flex-shrink-0 p-5 border-t border-[#EAE4F2] bg-[#FAF8FC]">
           {footer}
         </div>
       </div>

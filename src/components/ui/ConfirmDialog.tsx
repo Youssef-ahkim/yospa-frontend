@@ -59,18 +59,18 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+        className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#EAE4F2] space-y-4 animate-in fade-in zoom-in-95 duration-150"
       >
         <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
           <AlertTriangle className="w-6 h-6" />
         </div>
 
         <div>
-          <h3 id="confirm-dialog-title" className="text-lg font-bold text-gray-900">
+          <h3 id="confirm-dialog-title" className="text-lg font-bold text-[#33283D]">
             {title}
           </h3>
           {description && (
-            <div className="text-sm text-gray-600 mt-2 leading-relaxed">
+            <div className="text-sm text-[#7A6F86] mt-2 leading-relaxed">
               {description}
             </div>
           )}
@@ -82,7 +82,7 @@ export function ConfirmDialog({
             type="button"
             disabled={isConfirming}
             onClick={onClose}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+            className="flex-1 py-2 px-4 border border-[#EAE4F2] rounded-xl text-sm font-medium text-[#33283D] bg-white hover:bg-[#FAF8FC] transition-colors cursor-pointer"
           >
             {cancelLabel}
           </button>

@@ -1,14 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8f9fc;
-  --foreground: #111827;
+  --primary: #7455A4;
+  --secondary: #9275BC;
+  --soft-lilac: #C9B8E2;
+  --light-lavender: #F0EAF7;
+
+  --background: #FAF8FC;
+  --surface: #FFFFFF;
+
+  --text-primary: #33283D;
+  --accent-sage: #91A68D;
+
+  --foreground: #33283D;
   --sidebar-width: 260px;
 }
 
 @theme inline {
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-soft-lilac: var(--soft-lilac);
+  --color-light-lavender: var(--light-lavender);
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-text-primary: var(--text-primary);
+  --color-accent-sage: var(--accent-sage);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -23,7 +40,7 @@ html {
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text-primary);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -38,32 +55,37 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #C9B8E2;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #9275BC;
 }
 
 /* Smooth focus rings */
 :focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 /* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #7455A4, #9275BC);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Glass card */
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+/* Soft card shadow */
+.card-shadow {
+  box-shadow: 0 2px 14px 0 rgba(116, 85, 164, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+}
+
+.card-shadow-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-shadow-hover:hover {
+  box-shadow: 0 8px 24px -4px rgba(116, 85, 164, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  transform: translateY(-1px);
 }

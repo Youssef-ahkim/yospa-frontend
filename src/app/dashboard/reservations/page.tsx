@@ -295,21 +295,21 @@ export default function ReservationsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Reservations</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-extrabold text-[#33283D] tracking-tight">Reservations</h1>
+          <p className="text-sm text-[#7A6F86] mt-0.5">
             Manage your schedule, bookings, and appointment statuses.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* View Mode Switcher */}
-          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
+          <div className="flex items-center bg-[#FAF8FC] p-1 rounded-xl border border-[#EAE4F2]">
             <button
               onClick={() => setActiveView("list")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeView === "list"
-                  ? "bg-white text-gray-900 shadow-xs"
-                  : "text-gray-500 hover:text-gray-900"
+                  ? "bg-white text-[#33283D] shadow-xs"
+                  : "text-[#7A6F86] hover:text-[#33283D]"
               }`}
             >
               <List className="w-3.5 h-3.5" />
@@ -319,8 +319,8 @@ export default function ReservationsPage() {
               onClick={() => setActiveView("calendar")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeView === "calendar"
-                  ? "bg-white text-gray-900 shadow-xs"
-                  : "text-gray-500 hover:text-gray-900"
+                  ? "bg-white text-[#33283D] shadow-xs"
+                  : "text-[#7A6F86] hover:text-[#33283D]"
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
@@ -330,7 +330,7 @@ export default function ReservationsPage() {
 
           <button
             onClick={() => openCreateModal()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#7455A4] hover:bg-[#5E4387] text-white text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>New Reservation</span>
@@ -353,10 +353,10 @@ export default function ReservationsPage() {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="flex justify-center items-center py-24 bg-white border border-gray-200 rounded-xl shadow-xs">
+        <div className="flex justify-center items-center py-24 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
           <div className="flex flex-col items-center gap-2">
-            <Spinner className="w-8 h-8 text-indigo-600" />
-            <span className="text-xs text-gray-400 font-medium">Loading reservations...</span>
+            <Spinner className="w-8 h-8 text-[#7455A4]" />
+            <span className="text-xs text-[#7A6F86] font-medium">Loading reservations...</span>
           </div>
         </div>
       ) : activeView === "calendar" ? (
@@ -372,22 +372,22 @@ export default function ReservationsPage() {
       ) : (
         <>
           {/* Filters Bar */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
+          <div className="bg-white border border-[#EAE4F2] rounded-2xl p-4 shadow-xs space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               {/* Search input */}
               <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#7A6F86] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by client, phone, email, service..."
-                  className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] bg-white text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -400,10 +400,10 @@ export default function ReservationsPage() {
                   <button
                     key={btn.value}
                     onClick={() => setDateFilter(btn.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                       dateFilter === btn.value
-                        ? "bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-semibold"
-                        : "text-gray-600 hover:bg-gray-50 border border-gray-200"
+                        ? "bg-[#33283D] text-white font-semibold"
+                        : "text-[#7A6F86] hover:bg-[#FAF8FC] border border-[#EAE4F2]"
                     }`}
                   >
                     {btn.label}
@@ -413,7 +413,7 @@ export default function ReservationsPage() {
                 {hasActiveFilters && (
                   <button
                     onClick={clearAllFilters}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer ml-1"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-[#7A6F86] hover:text-[#33283D] rounded-lg hover:bg-[#FAF8FC] transition-colors cursor-pointer ml-1"
                     title="Reset all search filters"
                   >
                     <RotateCcw className="w-3 h-3" />
@@ -424,23 +424,23 @@ export default function ReservationsPage() {
             </div>
 
             {/* Status Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-1 overflow-x-auto pt-2 border-t border-[#EAE4F2]">
               {statusTabs.map((tab) => (
                 <button
                   key={tab.value}
                   onClick={() => setStatusFilter(tab.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
                     statusFilter === tab.value
-                      ? "bg-gray-900 text-white font-semibold"
-                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                      ? "bg-[#33283D] text-white font-semibold shadow-xs"
+                      : "text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC]"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
                       statusFilter === tab.value
-                        ? "bg-gray-700 text-gray-200"
-                        : "bg-gray-100 text-gray-600"
+                        ? "bg-white/20 text-white"
+                        : "bg-[#F0EAF7] text-[#7455A4]"
                     }`}
                   >
                     {tab.count}

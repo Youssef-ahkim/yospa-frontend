@@ -18,12 +18,12 @@ export function FormField({
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-semibold text-[#33283D]">
           {label}{" "}
           {required ? (
             <span className="text-red-500">*</span>
           ) : (
-            <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+            <span className="text-[#7A6F86] font-normal text-xs">(Optional)</span>
           )}
         </label>
         {labelExtra}

@@ -180,36 +180,36 @@ export function CalendarView({
   const hourList = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-xs overflow-hidden flex flex-col">
+    <div className="bg-white border border-[#EAE4F2] rounded-2xl shadow-xs overflow-hidden flex flex-col">
       {/* Calendar Top Toolbar */}
-      <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white">
+      <div className="p-4 border-b border-[#EAE4F2] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white">
         {/* Navigation & Title */}
         <div className="flex items-center gap-3">
-          <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 shadow-xs">
+          <div className="inline-flex rounded-xl border border-[#EAE4F2] p-0.5 bg-[#FAF8FC] shadow-xs">
             <button
               onClick={handlePrev}
-              className="p-1.5 rounded-md hover:bg-white text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-white text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
               title="Previous"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleToday}
-              className="px-2.5 py-1 text-xs font-semibold rounded-md hover:bg-white text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg hover:bg-white text-[#33283D] transition-colors cursor-pointer"
             >
               Today
             </button>
             <button
               onClick={handleNext}
-              className="p-1.5 rounded-md hover:bg-white text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-white text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
               title="Next"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-indigo-600" />
+          <h2 className="text-base font-extrabold text-[#33283D] flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4 text-[#7455A4]" />
             <span>{headerTitle}</span>
           </h2>
         </div>
@@ -217,25 +217,25 @@ export function CalendarView({
         {/* View Mode & Toggles */}
         <div className="flex items-center gap-3 self-end md:self-auto">
           {/* Show Cancelled Toggle */}
-          <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 cursor-pointer select-none">
+          <label className="inline-flex items-center gap-1.5 text-xs text-[#7A6F86] hover:text-[#33283D] cursor-pointer select-none">
             <input
               type="checkbox"
               checked={showCancelled}
               onChange={(e) => setShowCancelled(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              className="w-3.5 h-3.5 rounded border-[#C9B8E2] text-[#7455A4] focus:ring-[#7455A4] cursor-pointer"
             />
             <span>Show cancelled</span>
           </label>
 
           {/* Day / Week Switcher */}
-          <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 shadow-xs">
+          <div className="inline-flex rounded-xl border border-[#EAE4F2] p-0.5 bg-[#FAF8FC] shadow-xs">
             <button
               type="button"
               onClick={() => setViewMode("day")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                 viewMode === "day"
-                  ? "bg-white text-gray-900 shadow-xs font-bold"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-white text-[#33283D] shadow-xs"
+                  : "text-[#7A6F86] hover:text-[#33283D]"
               }`}
             >
               Day
@@ -243,10 +243,10 @@ export function CalendarView({
             <button
               type="button"
               onClick={() => setViewMode("week")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                 viewMode === "week"
-                  ? "bg-white text-gray-900 shadow-xs font-bold"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-white text-[#33283D] shadow-xs"
+                  : "text-[#7A6F86] hover:text-[#33283D]"
               }`}
             >
               Week
@@ -263,9 +263,9 @@ export function CalendarView({
           }`}
         >
           {/* Header Row: Column Day Titles */}
-          <div className="flex border-b border-gray-200 bg-gray-50/90 sticky top-0 z-20">
+          <div className="flex border-b border-[#EAE4F2] bg-[#FAF8FC] sticky top-0 z-20">
             {/* Sticky Time Label Header Column */}
-            <div className="w-16 flex-shrink-0 sticky left-0 z-30 bg-gray-50 border-r border-gray-200 py-2.5 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+            <div className="w-16 flex-shrink-0 sticky left-0 z-30 bg-[#FAF8FC] border-r border-[#EAE4F2] py-2.5 text-center text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
               Time
             </div>
 
@@ -279,18 +279,18 @@ export function CalendarView({
                 return (
                   <div
                     key={idx}
-                    className={`py-2 px-3 text-center border-r border-gray-200 last:border-r-0 ${
-                      isCurrentToday ? "bg-indigo-50/60" : ""
+                    className={`py-2 px-3 text-center border-r border-[#EAE4F2] last:border-r-0 ${
+                      isCurrentToday ? "bg-[#F0EAF7]/30" : ""
                     }`}
                   >
-                    <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wider block">
+                    <span className="text-[11px] font-medium text-[#7A6F86] uppercase tracking-wider block">
                       {dayName}
                     </span>
                     <span
                       className={`inline-flex items-center justify-center text-sm font-bold mt-0.5 w-7 h-7 rounded-full ${
                         isCurrentToday
-                          ? "bg-indigo-600 text-white"
-                          : "text-gray-900"
+                          ? "bg-[#7455A4] text-white shadow-xs"
+                          : "text-[#33283D]"
                       }`}
                     >
                       {dayNum}
@@ -304,14 +304,14 @@ export function CalendarView({
           {/* Time Body Grid */}
           <div className="flex relative">
             {/* Left Sticky Hour Labels Column */}
-            <div className="w-16 flex-shrink-0 sticky left-0 z-20 bg-white border-r border-gray-200 select-none">
+            <div className="w-16 flex-shrink-0 sticky left-0 z-20 bg-white border-r border-[#EAE4F2] select-none">
               {hourList.map((hour) => {
                 const hourFormatted = `${String(hour).padStart(2, "0")}:00`;
                 return (
                   <div
                     key={hour}
                     style={{ height: `${HOUR_HEIGHT}px` }}
-                    className="relative text-right pr-2 text-xs font-mono text-gray-400"
+                    className="relative text-right pr-2 text-xs font-mono text-[#7A6F86]/70"
                   >
                     <span className="-top-2.5 relative">{hourFormatted}</span>
                   </div>
@@ -323,7 +323,7 @@ export function CalendarView({
             <div
               className="flex-1 grid relative"
               style={{
-                gridTemplateColumns: `repeat(${daysInView.length}, minmax(0, 1fr))`,
+                gridTemplateColumns: `repeat(${daysInView.length}, minmax(0, 1fr))` ,
                 height: `${TOTAL_HOURS * HOUR_HEIGHT}px`,
               }}
             >
@@ -333,7 +333,7 @@ export function CalendarView({
                   <div
                     key={i}
                     style={{ height: `${HOUR_HEIGHT}px` }}
-                    className="border-b border-gray-100 w-full"
+                    className="border-b border-[#FAF8FC] w-full"
                   />
                 ))}
               </div>
@@ -363,8 +363,8 @@ export function CalendarView({
                   <div
                     key={dayIdx}
                     onClick={(e) => handleSlotClick(e, dayDate)}
-                    className={`relative border-r border-gray-200 last:border-r-0 cursor-pointer hover:bg-indigo-50/20 transition-colors ${
-                      isCurrentToday ? "bg-indigo-50/15" : "bg-white"
+                    className={`relative border-r border-[#EAE4F2] last:border-r-0 cursor-pointer hover:bg-[#F0EAF7]/20 transition-colors ${
+                      isCurrentToday ? "bg-[#F0EAF7]/10" : "bg-white"
                     }`}
                     style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
                   >
@@ -372,9 +372,9 @@ export function CalendarView({
                     {currentTimeTop !== null && (
                       <div
                         style={{ top: `${currentTimeTop}px` }}
-                        className="absolute inset-x-0 z-20 pointer-events-none border-t-2 border-red-500"
+                        className="absolute inset-x-0 z-20 pointer-events-none border-t-2 border-[#7455A4]"
                       >
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 absolute -top-[5px] -left-1.5 shadow-xs" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#7455A4] absolute -top-[5px] -left-1.5 shadow-xs" />
                       </div>
                     )}
 
@@ -442,7 +442,7 @@ export function CalendarView({
                                 {startTime}
                               </span>
                               <span className="font-semibold text-gray-700">
-                                ${Number(res.total_price ?? 0).toFixed(0)}
+                                {Number(res.total_price ?? 0).toFixed(0)} MAD
                               </span>
                             </div>
                           )}

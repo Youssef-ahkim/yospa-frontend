@@ -10,22 +10,19 @@ export function parsePrice(price: string | number | null | undefined): number {
 }
 
 /**
- * Formats numeric amounts using Intl.NumberFormat with the target currency.
+ * Formats numeric amounts using standard Moroccan Dirham formatting (e.g. "4,435.70 MAD").
+ * Ensures consistency across browsers and avoids any unwanted '$' symbols.
  */
 export function formatCurrency(
   amount: string | number | null | undefined,
   currency = DEFAULT_CURRENCY
 ): string {
   const numericAmount = parsePrice(amount);
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(numericAmount);
-  } catch {
-    return `${numericAmount.toFixed(2)} ${currency}`;
-  }
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numericAmount);
+  return `${formatted} ${currency}`;
 }
+
 
