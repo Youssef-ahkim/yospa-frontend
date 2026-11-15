@@ -66,10 +66,17 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     ...headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...customOptions,
-    headers: defaultHeaders,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...customOptions,
+      headers: defaultHeaders,
+    });
+  } catch (err) {
+    // Network error, likely offline
+    throw new ApiError('Offline', 0);
+  }
+
 
   // Handle 401 Unauthorized (expired or missing session).
   // Skip expiry handling only when the path is exactly "/login" (so credential failures stay normal errors).
@@ -85,7 +92,20 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
   }
 
   // Parse JSON response if available
-  const data = response.status !== 204 ? await response.json() : null;
+  let data: any = null;
+  if (response.status !== 204) {
+    try {
+      data = await response.json();
+    } catch (e) {
+      // Not JSON (e.g., plain text like "Offline"). Fallback to raw text.
+      try {
+        const text = await response.text();
+        data = { message: text };
+      } catch (_) {
+        data = null;
+      }
+    }
+  }
 
   if (!response.ok) {
     throw new ApiError(
