@@ -5,6 +5,11 @@ import { apiFetch } from "@/lib/api";
 import { Client, Reservation } from "@/types";
 import { isToday, isThisMonth } from "@/lib/dates";
 import { parsePrice } from "@/lib/currency";
+import {
+  getTodayGrowth,
+  getCompletedGrowth,
+  getClientsGrowth,
+} from "@/lib/analytics";
 
 export interface MonthlyDataPoint {
   month: string;
@@ -16,14 +21,21 @@ export interface DashboardStats {
   todayAppointmentsCount: number;
   completedCount: number;
   cancelledCount: number;
+  pendingCount: number;
   futurePendingCount: number;
   overduePendingCount: number;
   totalClientsCount: number;
   revenueThisMonth: number;
+  todayGrowth: string;
+  completedGrowth: string;
+  pendingGrowth: string;
+  clientsGrowth: string;
   todaySchedule: Reservation[];
   upcomingPendingShortlist: Reservation[];
   allRecentReservations: Reservation[];
+  allReservations: Reservation[];
   recentClients: Client[];
+  allClients: Client[];
   totalReservationsCount: number;
   topService: {
     name: string;
@@ -135,18 +147,30 @@ export function useDashboardData() {
         }
       });
 
+      const todayGrowth = getTodayGrowth(reservations, now);
+      const completedGrowth = getCompletedGrowth(reservations, now);
+      const pendingGrowth = "—";
+      const clientsGrowth = getClientsGrowth(clients, now);
+
       setData({
         todayAppointmentsCount,
         completedCount,
         cancelledCount,
+        pendingCount: allPending.length,
         futurePendingCount: futurePending.length,
         overduePendingCount: overduePending.length,
         totalClientsCount: clients.length,
         revenueThisMonth,
+        todayGrowth,
+        completedGrowth,
+        pendingGrowth,
+        clientsGrowth,
         todaySchedule,
         upcomingPendingShortlist,
         allRecentReservations,
+        allReservations: reservations,
         recentClients,
+        allClients: clients,
         totalReservationsCount: reservations.length,
         topService,
         monthlyTrend: monthlyBuckets,

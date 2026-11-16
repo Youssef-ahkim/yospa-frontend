@@ -35,6 +35,7 @@ export default function DashboardPage() {
         userName={user?.name}
         greeting={greeting}
         todayFormatted={todayFormatted}
+        pendingCount={data?.pendingCount}
       />
 
       {error && (

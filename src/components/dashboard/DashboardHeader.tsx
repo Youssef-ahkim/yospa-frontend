@@ -1,20 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { Calendar, Bell, ChevronDown } from "lucide-react";
 
 interface DashboardHeaderProps {
   userName?: string;
   greeting: string;
   todayFormatted: string;
+  pendingCount?: number;
 }
 
 export function DashboardHeader({
   userName,
   greeting,
   todayFormatted,
+  pendingCount = 0,
 }: DashboardHeaderProps) {
-  const firstName = userName ? userName.split(" ")[0] : "Jonathan";
-  const initial = userName ? userName[0].toUpperCase() : "J";
+  const firstName = userName?.trim() ? userName.trim().split(" ")[0] : "there";
+  const initial = userName?.trim() ? userName.trim()[0].toUpperCase() : "U";
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -35,15 +38,17 @@ export function DashboardHeader({
           <span>{todayFormatted}</span>
         </div>
 
-        {/* Notification bell */}
-        <button
-          type="button"
-          className="relative p-2.5 bg-white rounded-xl border border-[#EAE4F2] text-[#33283D] hover:bg-[#F0EAF7] hover:border-[#C9B8E2] transition-colors cursor-pointer shadow-xs"
-          aria-label="Notifications"
+        {/* Notification bell linking to pending reservations with dynamic badge */}
+        <Link
+          href="/dashboard/reservations?status=pending"
+          className="relative p-2.5 bg-white rounded-xl border border-[#EAE4F2] text-[#33283D] hover:bg-[#F0EAF7] hover:border-[#C9B8E2] transition-colors cursor-pointer shadow-xs inline-flex items-center justify-center"
+          aria-label="Pending reservations"
         >
           <Bell className="w-4 h-4 text-[#33283D]" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#7455A4] ring-2 ring-white" />
-        </button>
+          {pendingCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#7455A4] ring-2 ring-white" />
+          )}
+        </Link>
 
         {/* Profile pill */}
         <div className="flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-xl border border-[#EAE4F2] shadow-xs">
@@ -51,7 +56,7 @@ export function DashboardHeader({
             {initial}
           </div>
           <span className="text-xs font-semibold text-[#33283D] hidden sm:inline max-w-[100px] truncate">
-            {userName ? firstName : "Admin"}
+            {userName?.trim() ? firstName : "Admin"}
           </span>
           <ChevronDown className="w-3.5 h-3.5 text-[#7A6F86]" />
         </div>
