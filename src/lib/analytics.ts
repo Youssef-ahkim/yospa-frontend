@@ -21,6 +21,15 @@ export interface ChartSeriesResult {
   previousTotalBookings: number;
 }
 
+export interface TopServiceItem {
+  id?: number;
+  name: string;
+  price: number;
+  bookingsCount: number;
+  duration?: number;
+  tag: string;
+}
+
 /** Safely parse any price / string to number */
 export function parsePrice(val: unknown): number {
   if (typeof val === "number") return isNaN(val) ? 0 : val;
@@ -105,6 +114,56 @@ export function getClientsGrowth(clients: Client[], now = new Date(), days = 30)
 /** Format reservation order ID as CTG#### */
 export function formatOrderId(id: number): string {
   return `CTG${String(id).padStart(4, "0")}`;
+}
+
+/**
+ * Top 3 services by completed bookings in the last 7 days, falling back to all-time if empty.
+ */
+export function getTopServices(
+  reservations: Reservation[] = [],
+  n = 3,
+  now = new Date()
+): TopServiceItem[] {
+  const completed = reservations.filter((r) => r.status === "completed" && r.service?.name);
+  if (completed.length === 0) return [];
+
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const last7Days = completed.filter((r) => new Date(r.start_time) >= sevenDaysAgo);
+
+  const targetList = last7Days.length > 0 ? last7Days : completed;
+
+  const map = new Map<
+    string,
+    { id?: number; name: string; price: number; duration?: number; count: number }
+  >();
+
+  targetList.forEach((r) => {
+    const s = r.service!;
+    const key = s.name;
+    const existing = map.get(key) || {
+      id: s.id,
+      name: s.name,
+      price: parsePrice(s.price),
+      duration: s.duration_minutes,
+      count: 0,
+    };
+    existing.count += 1;
+    map.set(key, existing);
+  });
+
+  const tags = ["Best Seller", "Trending", "Popular"];
+
+  return Array.from(map.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, n)
+    .map((item, index) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      bookingsCount: item.count,
+      duration: item.duration,
+      tag: tags[index] || "Popular",
+    }));
 }
 
 /**

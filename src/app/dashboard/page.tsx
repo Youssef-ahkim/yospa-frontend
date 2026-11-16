@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <TransactionsTable reservations={data?.allRecentReservations} />
-        <BestSellerCard topService={data?.topService} />
+        <BestSellerCard reservations={data?.allReservations} />
       </div>
     </div>
   );
