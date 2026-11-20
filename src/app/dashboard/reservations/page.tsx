@@ -44,6 +44,8 @@ export default function ReservationsPage() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
@@ -149,6 +151,26 @@ export default function ReservationsPage() {
       toast.error(err.message || "Failed to cancel reservation.");
     } finally {
       setIsCancelling(false);
+      setUpdatingId(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setUpdatingId(deleteTarget.id);
+    try {
+      const response = await apiFetch<{ message: string }>(
+        `/reservations/${deleteTarget.id}`,
+        { method: "DELETE" }
+      );
+      setReservations((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      toast.success(response.message || "Reservation deleted successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete reservation.");
+    } finally {
+      setIsDeleting(false);
       setUpdatingId(null);
     }
   };
@@ -280,6 +302,7 @@ export default function ReservationsPage() {
           onStatusChange={handleStatusChange}
           onCancelClick={(res) => setCancelTarget(res)}
           onEditClick={openEditModal}
+          onDeleteClick={(res) => setDeleteTarget(res)}
           updatingId={updatingId}
         />
       ) : (
@@ -370,6 +393,7 @@ export default function ReservationsPage() {
             updatingId={updatingId}
             onStatusChange={handleStatusChange}
             onEditClick={openEditModal}
+            onDeleteClick={(res) => setDeleteTarget(res)}
             onCreateClick={() => openCreateModal()}
             onClearFilters={clearAllFilters}
           />
@@ -403,6 +427,41 @@ export default function ReservationsPage() {
               <p>
                 <strong>Date:</strong>{" "}
                 {cancelTarget.start_time ? new Date(cancelTarget.start_time).toLocaleString() : "N/A"}
+              </p>
+            </div>
+          </>
+        )}
+      </ConfirmDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Reservation?"
+        confirmLabel="Delete Reservation"
+        confirmLoadingLabel="Deleting..."
+        cancelLabel="Keep Reservation"
+        isConfirming={isDeleting}
+      >
+        {deleteTarget && (
+          <>
+            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+              Are you sure you want to permanently delete this reservation for{" "}
+              <strong className="text-gray-900">
+                {deleteTarget.client?.full_name || "this client"}
+              </strong>
+              ? This action cannot be undone.
+            </p>
+            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs space-y-1 text-gray-600">
+              <p>
+                <strong>Service:</strong> {deleteTarget.service?.name || "General Service"}
+              </p>
+              <p>
+                <strong>Date & Time:</strong>{" "}
+                {deleteTarget.start_time
+                  ? new Date(deleteTarget.start_time).toLocaleString()
+                  : "N/A"}
               </p>
             </div>
           </>

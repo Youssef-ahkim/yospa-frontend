@@ -23,7 +23,8 @@ import {
   CheckCheck, 
   XCircle, 
   ExternalLink,
-  Edit3
+  Edit3,
+  Trash2
 } from "lucide-react";
 
 interface EventDetailPanelProps {
@@ -32,6 +33,7 @@ interface EventDetailPanelProps {
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
   onCancelClick: (reservation: Reservation) => void;
   onEditClick: (reservation: Reservation) => void;
+  onDeleteClick: (reservation: Reservation) => void;
   isUpdating: boolean;
 }
 
@@ -41,6 +43,7 @@ export function EventDetailPanel({
   onStatusChange,
   onCancelClick,
   onEditClick,
+  onDeleteClick,
   isUpdating,
 }: EventDetailPanelProps) {
   // Lock body scroll
@@ -97,15 +100,28 @@ export function EventDetailPanel({
             {(reservation.status === "pending" || reservation.status === "confirmed") && (
               <button
                 type="button"
+                disabled={isUpdating}
                 onClick={() => {
                   onClose();
                   onEditClick(reservation);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] border border-[#C9B8E2] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] border border-[#C9B8E2] transition-colors cursor-pointer disabled:opacity-50"
                 title="Edit reservation"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit</span>
+              </button>
+            )}
+            {(reservation.status === "pending" || reservation.status === "cancelled") && (
+              <button
+                type="button"
+                disabled={isUpdating}
+                onClick={() => onDeleteClick(reservation)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#BE123C] bg-rose-50 hover:bg-rose-100 border border-[#FECDD3] transition-colors cursor-pointer disabled:opacity-50"
+                title="Delete reservation"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
               </button>
             )}
             <button

@@ -16,6 +16,7 @@ import {
   CheckCheck,
   XCircle,
   Edit3,
+  Trash2,
 } from "lucide-react";
 
 interface ReservationsTableProps {
@@ -24,6 +25,7 @@ interface ReservationsTableProps {
   updatingId: number | null;
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
   onEditClick: (reservation: Reservation) => void;
+  onDeleteClick: (reservation: Reservation) => void;
   onCreateClick: () => void;
   onClearFilters: () => void;
 }
@@ -34,6 +36,7 @@ export function ReservationsTable({
   updatingId,
   onStatusChange,
   onEditClick,
+  onDeleteClick,
   onCreateClick,
   onClearFilters,
 }: ReservationsTableProps) {
@@ -226,7 +229,20 @@ export function ReservationsTable({
                           </button>
                         )}
 
-                        {!(res.status === "pending" || res.status === "confirmed") && allowedNextStatuses.length === 0 && (
+                        {(res.status === "pending" || res.status === "cancelled") && (
+                          <button
+                            type="button"
+                            disabled={isRowUpdating}
+                            onClick={() => onDeleteClick(res)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#BE123C] bg-white hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-[#FECDD3] shadow-2xs disabled:opacity-50"
+                            title="Delete this reservation"
+                          >
+                            <Trash2 className="w-3 h-3 text-[#BE123C]" />
+                            Delete
+                          </button>
+                        )}
+
+                        {!(res.status === "pending" || res.status === "confirmed" || res.status === "cancelled") && allowedNextStatuses.length === 0 && (
                           <span className="text-xs text-[#7A6F86]/60 italic">No actions</span>
                         )}
                       </div>

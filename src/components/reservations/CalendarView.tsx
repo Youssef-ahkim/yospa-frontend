@@ -43,6 +43,7 @@ interface CalendarViewProps {
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
   onCancelClick: (reservation: Reservation) => void;
   onEditClick: (reservation: Reservation) => void;
+  onDeleteClick: (reservation: Reservation) => void;
   updatingId: number | null;
 }
 
@@ -56,6 +57,7 @@ export function CalendarView({
   onStatusChange,
   onCancelClick,
   onEditClick,
+  onDeleteClick,
   updatingId,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
@@ -83,6 +85,8 @@ export function CalendarView({
       const updated = reservations.find((r) => r.id === selectedReservation.id);
       if (updated) {
         setSelectedReservation(updated);
+      } else {
+        setSelectedReservation(null);
       }
     }
   }, [reservations, selectedReservation?.id]);
@@ -470,6 +474,7 @@ export function CalendarView({
             setSelectedReservation(null);
             onEditClick(res);
           }}
+          onDeleteClick={(res) => onDeleteClick(res)}
           isUpdating={updatingId === selectedReservation.id}
         />
       )}
