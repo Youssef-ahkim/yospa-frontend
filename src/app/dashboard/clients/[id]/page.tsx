@@ -339,7 +339,15 @@ function ClientDetailContent() {
           Are you sure you want to delete this client?
         </p>
         <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 leading-relaxed">
-          <strong>Warning:</strong> Deleting this client will permanently remove their profile and all of their associated appointments/reservations (cascade deletion).
+          {reservations.length === 0 ? (
+            <>
+              <strong>Warning:</strong> Deleting this client will permanently remove their profile and all of their associated appointments/reservations (cascade deletion).
+            </>
+          ) : (
+            <>
+              <strong>Warning:</strong> Deleting this client will permanently remove their profile and {reservations.length === 1 ? "1 reservation" : `${reservations.length} reservations`} (cascade deletion).
+            </>
+          )}
         </div>
       </ConfirmDialog>
 
