@@ -28,6 +28,7 @@ const navigation: NavItem[] = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Clients", href: "/dashboard/clients", icon: Users },
   { name: "Reservations", href: "/dashboard/reservations", icon: Calendar },
+  { name: "Services", href: "/dashboard/services", icon: Sparkles },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -82,7 +83,7 @@ function BottomTabBar() {
           <Link
             key={item.name}
             href={item.href}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-colors ${
+            className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-semibold tracking-tight transition-colors ${
               isActive ? "text-[#7455A4]" : "text-[#7A6F86] hover:text-[#33283D]"
             }`}
           >
@@ -93,7 +94,7 @@ function BottomTabBar() {
             >
               <Icon size={16} />
             </div>
-            {item.name}
+            <span className="truncate max-w-full text-center">{item.name}</span>
           </Link>
         );
       })}

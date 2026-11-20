@@ -28,10 +28,10 @@ export interface Service {
   id: number;
   spa_id?: number;
   name: string;
-  description?: string;
+  description: string | null;
   duration_minutes: number;
   price: string | number;
-  is_active?: boolean;
+  is_active: boolean;
 }
 
 export type ReservationStatus = "pending" | "confirmed" | "completed" | "cancelled";
