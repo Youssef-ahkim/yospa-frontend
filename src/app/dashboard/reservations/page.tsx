@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import {
   Client,
   Service,
@@ -46,18 +46,8 @@ export default function ReservationsPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-
-  const [formData, setFormData] = useState({
-    client_id: "",
-    service_id: "",
-    start_time: "",
-    end_time: "",
-    total_price: "",
-    status: "confirmed" as ReservationStatus,
-    notes: "",
-  });
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [slotStartTime, setSlotStartTime] = useState<string | undefined>(undefined);
 
   const fetchData = async () => {
     try {
@@ -163,107 +153,29 @@ export default function ReservationsPage() {
     }
   };
 
-  const getDefaultStartTime = () => {
-    const now = new Date();
-    now.setHours(now.getHours() + 1, 0, 0, 0);
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  };
-
-  const calculateEndTime = (startStr: string, durationMinutes: number) => {
-    if (!startStr) return "";
-    const startDate = new Date(startStr);
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    return new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  };
-
   const openCreateModal = (initialStartTime?: string) => {
-    setFieldErrors({});
-    const initialStart = initialStartTime || getDefaultStartTime();
-    const defaultService = services[0];
-    const initialEnd = defaultService ? calculateEndTime(initialStart, defaultService.duration_minutes) : "";
-    setFormData({
-      client_id: clients.length > 0 ? String(clients[0].id) : "",
-      service_id: defaultService ? String(defaultService.id) : "",
-      start_time: initialStart,
-      end_time: initialEnd,
-      total_price: defaultService ? String(defaultService.price) : "",
-      status: "confirmed",
-      notes: "",
-    });
+    setEditingReservation(null);
+    setSlotStartTime(initialStartTime);
     setIsModalOpen(true);
   };
 
-  const handleServiceChange = (serviceId: string) => {
-    const selected = services.find((s) => String(s.id) === serviceId);
-    setFormData((prev) => ({
-      ...prev,
-      service_id: serviceId,
-      total_price: selected ? String(selected.price) : prev.total_price,
-      end_time: selected && prev.start_time ? calculateEndTime(prev.start_time, selected.duration_minutes) : prev.end_time,
-    }));
-  };
-
-  const handleStartTimeChange = (startTime: string) => {
-    setFormData((prev) => {
-      const selected = services.find((s) => String(s.id) === prev.service_id);
-      return {
-        ...prev,
-        start_time: startTime,
-        end_time: selected && startTime ? calculateEndTime(startTime, selected.duration_minutes) : prev.end_time,
-      };
-    });
-  };
-
-  const handleCreateReservation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFieldErrors({});
-
-    if (!formData.client_id) { toast.error("Please select a client."); return; }
-    if (!formData.service_id) { toast.error("Please select a service."); return; }
-    if (!formData.start_time || !formData.end_time) { toast.error("Please specify both start and end date/time."); return; }
-    if (new Date(formData.end_time) <= new Date(formData.start_time)) {
-      setFieldErrors({ end_time: ["End time must be later than the start time."] });
+  const openEditModal = (reservation: Reservation) => {
+    if (reservation.status === "completed" || reservation.status === "cancelled") {
+      toast.error("Completed and cancelled reservations cannot be edited.");
       return;
     }
-    if (!formData.total_price || isNaN(Number(formData.total_price))) {
-      setFieldErrors({ total_price: ["Please enter a valid price."] });
-      return;
-    }
+    setEditingReservation(reservation);
+    setSlotStartTime(undefined);
+    setIsModalOpen(true);
+  };
 
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        client_id: Number(formData.client_id),
-        service_id: Number(formData.service_id),
-        start_time: formData.start_time.replace("T", " ") + ":00",
-        end_time: formData.end_time.replace("T", " ") + ":00",
-        total_price: parseFloat(String(formData.total_price)),
-        status: formData.status,
-        notes: formData.notes.trim() || null,
-      };
-      const response = await apiFetch<any>("/reservations", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      const newReservation = response.reservation || response;
-      setReservations((prev) => [newReservation, ...prev]);
-      setIsModalOpen(false);
-      toast.success("Reservation scheduled successfully.");
-    } catch (err: any) {
-      if (err instanceof ApiError && err.errors) {
-        setFieldErrors(err.errors);
-        const knownFields = ["client_id", "service_id", "start_time", "end_time", "total_price", "notes"];
-        const nonFieldKeys = Object.keys(err.errors).filter((k) => !knownFields.includes(k));
-        if (nonFieldKeys.length > 0) {
-          toast.error(err.errors[nonFieldKeys[0]][0] || err.message);
-        } else {
-          toast.error("Please check the form inputs.");
-        }
-      } else {
-        toast.error(err.message || "Failed to create reservation. Please review inputs.");
-      }
-    } finally {
-      setIsSubmitting(false);
+  const handleReservationSaved = (savedReservation: Reservation, isEdit: boolean) => {
+    if (isEdit) {
+      setReservations((prev) =>
+        prev.map((item) => (item.id === savedReservation.id ? savedReservation : item))
+      );
+    } else {
+      setReservations((prev) => [savedReservation, ...prev]);
     }
   };
 
@@ -495,19 +407,19 @@ export default function ReservationsPage() {
         )}
       </ConfirmDialog>
 
-      {/* New Reservation Slide-Over */}
+      {/* Reservation Form Slide-Over (Create and Edit) */}
       <ReservationForm
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateReservation}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingReservation(null);
+          setSlotStartTime(undefined);
+        }}
+        initial={editingReservation}
+        initialStartTime={slotStartTime}
         clients={clients}
         services={services}
-        formData={formData}
-        onFormDataChange={setFormData}
-        onServiceChange={handleServiceChange}
-        onStartTimeChange={handleStartTimeChange}
-        isSubmitting={isSubmitting}
-        fieldErrors={fieldErrors}
+        onSuccess={handleReservationSaved}
       />
     </div>
   );
