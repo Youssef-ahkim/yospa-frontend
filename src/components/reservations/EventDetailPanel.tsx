@@ -22,7 +22,8 @@ import {
   CheckCircle2, 
   CheckCheck, 
   XCircle, 
-  ExternalLink 
+  ExternalLink,
+  Edit3
 } from "lucide-react";
 
 interface EventDetailPanelProps {
@@ -30,6 +31,7 @@ interface EventDetailPanelProps {
   onClose: () => void;
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
   onCancelClick: (reservation: Reservation) => void;
+  onEditClick: (reservation: Reservation) => void;
   isUpdating: boolean;
 }
 
@@ -38,6 +40,7 @@ export function EventDetailPanel({
   onClose,
   onStatusChange,
   onCancelClick,
+  onEditClick,
   isUpdating,
 }: EventDetailPanelProps) {
   // Lock body scroll
@@ -90,13 +93,29 @@ export function EventDetailPanel({
             <StatusBadge status={reservation.status} />
             <span className="text-xs text-[#7A6F86] font-mono">#{reservation.id}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC] transition-colors cursor-pointer"
-            title="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {(reservation.status === "pending" || reservation.status === "confirmed") && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onEditClick(reservation);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] border border-[#C9B8E2] transition-colors cursor-pointer"
+                title="Edit reservation"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC] transition-colors cursor-pointer"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Client & Service Info */}

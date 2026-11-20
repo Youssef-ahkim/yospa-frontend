@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   CheckCheck,
   XCircle,
+  Edit3,
 } from "lucide-react";
 
 interface ReservationsTableProps {
@@ -22,6 +23,7 @@ interface ReservationsTableProps {
   totalReservationsCount: number;
   updatingId: number | null;
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
+  onEditClick: (reservation: Reservation) => void;
   onCreateClick: () => void;
   onClearFilters: () => void;
 }
@@ -31,6 +33,7 @@ export function ReservationsTable({
   totalReservationsCount,
   updatingId,
   onStatusChange,
+  onEditClick,
   onCreateClick,
   onClearFilters,
 }: ReservationsTableProps) {
@@ -169,10 +172,21 @@ export function ReservationsTable({
                         <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />
                         <span>Updating...</span>
                       </div>
-                    ) : allowedNextStatuses.length === 0 ? (
-                      <span className="text-xs text-[#7A6F86]/60 italic">No actions</span>
                     ) : (
                       <div className="inline-flex items-center justify-end gap-1.5">
+                        {(res.status === "pending" || res.status === "confirmed") && (
+                          <button
+                            type="button"
+                            disabled={isRowUpdating}
+                            onClick={() => onEditClick(res)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#33283D] bg-white hover:bg-[#FAF8FC] rounded-lg transition-colors cursor-pointer border border-[#EAE4F2] shadow-2xs"
+                            title="Edit this reservation"
+                          >
+                            <Edit3 className="w-3 h-3 text-[#7455A4]" />
+                            Edit
+                          </button>
+                        )}
+
                         {allowedNextStatuses.includes("confirmed") && (
                           <button
                             type="button"
@@ -210,6 +224,10 @@ export function ReservationsTable({
                             <XCircle className="w-3 h-3" />
                             Cancel
                           </button>
+                        )}
+
+                        {!(res.status === "pending" || res.status === "confirmed") && allowedNextStatuses.length === 0 && (
+                          <span className="text-xs text-[#7A6F86]/60 italic">No actions</span>
                         )}
                       </div>
                     )}

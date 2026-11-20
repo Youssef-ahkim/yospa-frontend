@@ -42,6 +42,7 @@ interface CalendarViewProps {
   onSlotClick: (initialStartTime: string) => void;
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
   onCancelClick: (reservation: Reservation) => void;
+  onEditClick: (reservation: Reservation) => void;
   updatingId: number | null;
 }
 
@@ -54,6 +55,7 @@ export function CalendarView({
   onSlotClick,
   onStatusChange,
   onCancelClick,
+  onEditClick,
   updatingId,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
@@ -464,6 +466,10 @@ export function CalendarView({
           onClose={() => setSelectedReservation(null)}
           onStatusChange={handleStatusChangeInternal}
           onCancelClick={onCancelClick}
+          onEditClick={(res) => {
+            setSelectedReservation(null);
+            onEditClick(res);
+          }}
           isUpdating={updatingId === selectedReservation.id}
         />
       )}

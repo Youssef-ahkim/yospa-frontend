@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency } from "@/lib/currency";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
-import { Calendar, Edit3 } from "lucide-react";
+import { Calendar, Edit3, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 interface ReservationFormProps {
@@ -19,6 +19,7 @@ interface ReservationFormProps {
   initialStartTime?: string;
   clients: Client[];
   services: Service[];
+  existingReservations?: Reservation[];
   onSuccess: (saved: Reservation, isEdit: boolean) => void;
 }
 
@@ -72,6 +73,7 @@ export function ReservationForm({
   initialStartTime,
   clients,
   services,
+  existingReservations = [],
   onSuccess,
 }: ReservationFormProps) {
   const toast = useToast();
@@ -115,6 +117,45 @@ export function ReservationForm({
     }
     return clients;
   }, [clients, initial]);
+
+  // Non-blocking overlap conflict detection
+  const overlapConflict = useMemo(() => {
+    if (!existingReservations.length || !formData.start_time || !formData.end_time) {
+      return null;
+    }
+    const currentStart = new Date(formData.start_time.replace(" ", "T")).getTime();
+    const currentEnd = new Date(formData.end_time.replace(" ", "T")).getTime();
+
+    if (isNaN(currentStart) || isNaN(currentEnd) || currentStart >= currentEnd) {
+      return null;
+    }
+
+    return (
+      existingReservations.find((r) => {
+        // Exclude the reservation currently being edited
+        if (initial && r.id === initial.id) {
+          return false;
+        }
+        // Exclude cancelled reservations
+        if (r.status === "cancelled") {
+          return false;
+        }
+        const rStart = new Date(r.start_time.replace(" ", "T")).getTime();
+        const rEnd = new Date(r.end_time.replace(" ", "T")).getTime();
+        if (isNaN(rStart) || isNaN(rEnd)) {
+          return false;
+        }
+        return currentStart < rEnd && currentEnd > rStart;
+      }) || null
+    );
+  }, [existingReservations, formData.start_time, formData.end_time, initial]);
+
+  const formatConflictTime = (startStr: string, endStr: string) => {
+    const s = new Date(startStr.replace(" ", "T"));
+    const e = new Date(endStr.replace(" ", "T"));
+    const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+    return `${s.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${s.toLocaleTimeString([], timeOpts)} - ${e.toLocaleTimeString([], timeOpts)}`;
+  };
 
   // Sync form state when opened or when initial changes
   useEffect(() => {
@@ -420,6 +461,28 @@ export function ReservationForm({
             />
           </FormField>
         </div>
+
+        {/* Non-blocking Overlap Warning */}
+        {overlapConflict && (
+          <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 animate-in fade-in duration-150">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-amber-950">
+                Schedule Overlap Detected
+              </p>
+              <p>
+                Conflicts with{" "}
+                <strong className="font-semibold text-amber-950">
+                  {overlapConflict.client?.full_name || "another client"}
+                </strong>{" "}
+                ({formatConflictTime(overlapConflict.start_time, overlapConflict.end_time)}).
+              </p>
+              <p className="text-amber-800/80 text-[11px]">
+                You can still save this reservation if this double-booking is intentional.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Price and Status Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -279,6 +279,7 @@ export default function ReservationsPage() {
           onSlotClick={(timeStr) => openCreateModal(timeStr)}
           onStatusChange={handleStatusChange}
           onCancelClick={(res) => setCancelTarget(res)}
+          onEditClick={openEditModal}
           updatingId={updatingId}
         />
       ) : (
@@ -368,6 +369,7 @@ export default function ReservationsPage() {
             totalReservationsCount={reservations.length}
             updatingId={updatingId}
             onStatusChange={handleStatusChange}
+            onEditClick={openEditModal}
             onCreateClick={() => openCreateModal()}
             onClearFilters={clearAllFilters}
           />
@@ -419,6 +421,7 @@ export default function ReservationsPage() {
         initialStartTime={slotStartTime}
         clients={clients}
         services={services}
+        existingReservations={reservations}
         onSuccess={handleReservationSaved}
       />
     </div>
