@@ -5,6 +5,8 @@ import { apiFetch } from "@/lib/api";
 import { Service } from "@/types";
 import { formatCurrency } from "@/lib/currency";
 import { ServiceFormSlideOver } from "@/components/services/ServiceFormSlideOver";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 import {
   Plus,
   Search,
@@ -14,11 +16,15 @@ import {
   AlertCircle,
   RotateCcw,
   Edit3,
+  Trash2,
+  Power,
 } from "lucide-react";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function ServicesPage() {
+  const toast = useToast();
+
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,9 +32,19 @@ export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
+  // Track in-flight service actions by ID to disable individual row buttons
+  const [inFlightIds, setInFlightIds] = useState<Record<number, boolean>>({});
+
   // Slide-over states for create & edit
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+
+  // Deletion and 409 Deactivation Dialog states
+  const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [deactivateTarget, setDeactivateTarget] = useState<Service | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const fetchServices = async () => {
     try {
@@ -96,6 +112,109 @@ export default function ServicesPage() {
         a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
       );
     });
+  };
+
+  // Quick toggle active / inactive via PATCH { is_active } only
+  const handleToggleActive = async (service: Service) => {
+    const nextStatus = !service.is_active;
+    setInFlightIds((prev) => ({ ...prev, [service.id]: true }));
+
+    try {
+      const response = await apiFetch<{ message: string; service: Service }>(
+        `/services/${service.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ is_active: nextStatus }),
+        }
+      );
+
+      const updated = response.service || { ...service, is_active: nextStatus };
+      setServices((prev) => prev.map((s) => (s.id === service.id ? updated : s)));
+      toast.success(
+        response.message ||
+          `Service "${service.name}" is now ${nextStatus ? "active" : "inactive"}.`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update service status.");
+    } finally {
+      setInFlightIds((prev) => {
+        const next = { ...prev };
+        delete next[service.id];
+        return next;
+      });
+    }
+  };
+
+  // Confirm delete handler with 409 conflict handling
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+
+    setIsDeleting(true);
+    setInFlightIds((prev) => ({ ...prev, [target.id]: true }));
+
+    try {
+      const response = await apiFetch<{ message: string }>(`/services/${target.id}`, {
+        method: "DELETE",
+      });
+
+      // Remove row only after DELETE succeeds
+      setServices((prev) => prev.filter((s) => s.id !== target.id));
+      setDeleteTarget(null);
+      toast.success(response.message || `Service "${target.name}" was deleted successfully.`);
+    } catch (err: any) {
+      if (err?.status === 409) {
+        // Close delete dialog first
+        setDeleteTarget(null);
+        toast.error(err.message || "This service cannot be deleted because it has existing reservations.");
+        // Offer deactivate instead if currently active
+        if (target.is_active) {
+          setDeactivateTarget(target);
+        }
+      } else {
+        toast.error(err?.message || "Failed to delete service.");
+      }
+    } finally {
+      setIsDeleting(false);
+      setInFlightIds((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+    }
+  };
+
+  // Confirm deactivation from 409 fallback
+  const handleConfirmDeactivateInstead = async () => {
+    if (!deactivateTarget) return;
+    const target = deactivateTarget;
+
+    setIsDeactivating(true);
+    setInFlightIds((prev) => ({ ...prev, [target.id]: true }));
+
+    try {
+      const response = await apiFetch<{ message: string; service: Service }>(
+        `/services/${target.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ is_active: false }),
+        }
+      );
+
+      const updated = response.service || { ...target, is_active: false };
+      setServices((prev) => prev.map((s) => (s.id === target.id ? updated : s)));
+      toast.success(response.message || `Service "${target.name}" was deactivated.`);
+      setDeactivateTarget(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to deactivate service.");
+    } finally {
+      setIsDeactivating(false);
+      setInFlightIds((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+    }
   };
 
   return (
@@ -274,6 +393,8 @@ export default function ServicesPage() {
               <tbody className="divide-y divide-[#FAF8FC] bg-white">
                 {filteredServices.map((service) => {
                   const isInactive = !service.is_active;
+                  const isInFlight = Boolean(inFlightIds[service.id]);
+
                   return (
                     <tr
                       key={service.id}
@@ -349,14 +470,44 @@ export default function ServicesPage() {
 
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(service)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Edit</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Toggle Active/Inactive */}
+                          <button
+                            type="button"
+                            disabled={isInFlight}
+                            onClick={() => handleToggleActive(service)}
+                            title={service.is_active ? "Deactivate service" : "Activate service"}
+                            className={`p-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                              service.is_active
+                                ? "border-[#EAE4F2] text-[#7A6F86] hover:text-amber-700 hover:bg-amber-50 hover:border-amber-200"
+                                : "border-[#91A68D]/40 text-[#91A68D] hover:bg-[#91A68D]/15"
+                            }`}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Edit */}
+                          <button
+                            type="button"
+                            disabled={isInFlight}
+                            onClick={() => handleOpenEdit(service)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            disabled={isInFlight}
+                            onClick={() => setDeleteTarget(service)}
+                            className="p-1.5 rounded-lg text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Delete service"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -369,6 +520,8 @@ export default function ServicesPage() {
           <div className="md:hidden divide-y divide-[#EAE4F2]">
             {filteredServices.map((service) => {
               const isInactive = !service.is_active;
+              const isInFlight = Boolean(inFlightIds[service.id]);
+
               return (
                 <div
                   key={service.id}
@@ -433,14 +586,41 @@ export default function ServicesPage() {
                         {formatCurrency(service.price)}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(service)}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={isInFlight}
+                        onClick={() => handleToggleActive(service)}
+                        className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer disabled:opacity-40 ${
+                          service.is_active
+                            ? "border-[#EAE4F2] text-[#7A6F86] hover:bg-amber-50 hover:text-amber-700"
+                            : "border-[#91A68D]/30 text-[#91A68D] bg-[#91A68D]/10"
+                        }`}
+                      >
+                        {service.is_active ? "Deactivate" : "Activate"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isInFlight}
+                        onClick={() => handleOpenEdit(service)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isInFlight}
+                        onClick={() => setDeleteTarget(service)}
+                        className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-40"
+                        title="Delete service"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -463,6 +643,36 @@ export default function ServicesPage() {
         onClose={() => setIsSlideOverOpen(false)}
         service={editingService}
         onSuccess={handleSaveService}
+      />
+
+      {/* Primary Confirm Dialog for Permanent Delete */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete "${deleteTarget?.name}"?`}
+        description="Are you sure you want to delete this service? This action cannot be undone."
+        confirmLabel="Delete Service"
+        confirmLoadingLabel="Deleting..."
+        isConfirming={isDeleting}
+        confirmClassName="bg-red-600 hover:bg-red-700 text-white"
+      />
+
+      {/* Secondary Confirm Dialog for 409 Conflict: Deactivate Instead */}
+      <ConfirmDialog
+        open={Boolean(deactivateTarget)}
+        onClose={() => setDeactivateTarget(null)}
+        onConfirm={handleConfirmDeactivateInstead}
+        title="Deactivate instead?"
+        description={
+          <span>
+            <strong>&ldquo;{deactivateTarget?.name}&rdquo;</strong> has existing reservations and cannot be permanently deleted. Would you like to deactivate it so it no longer appears for new bookings?
+          </span>
+        }
+        confirmLabel="Deactivate Service"
+        confirmLoadingLabel="Deactivating..."
+        isConfirming={isDeactivating}
+        confirmClassName="bg-amber-600 hover:bg-amber-700 text-white"
       />
     </div>
   );
