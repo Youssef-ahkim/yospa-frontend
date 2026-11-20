@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { Service } from "@/types";
 import { formatCurrency } from "@/lib/currency";
+import { ServiceFormSlideOver } from "@/components/services/ServiceFormSlideOver";
 import {
   Plus,
   Search,
@@ -12,6 +13,7 @@ import {
   Clock,
   AlertCircle,
   RotateCcw,
+  Edit3,
 } from "lucide-react";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -23,6 +25,10 @@ export default function ServicesPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // Slide-over states for create & edit
+  const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
   const fetchServices = async () => {
     try {
@@ -68,9 +74,28 @@ export default function ServicesPage() {
     };
   }, [services]);
 
-  // Handler stub for "New service" (will open slide-over in Step 3)
   const handleOpenCreate = () => {
-    // Stub for Step 3 slide-over
+    setEditingService(null);
+    setIsSlideOverOpen(true);
+  };
+
+  const handleOpenEdit = (service: Service) => {
+    setEditingService(service);
+    setIsSlideOverOpen(true);
+  };
+
+  const handleSaveService = (savedService: Service, isEdit: boolean) => {
+    setServices((prev) => {
+      let nextList: Service[];
+      if (isEdit) {
+        nextList = prev.map((s) => (s.id === savedService.id ? savedService : s));
+      } else {
+        nextList = [savedService, ...prev];
+      }
+      return [...nextList].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      );
+    });
   };
 
   return (
@@ -242,7 +267,8 @@ export default function ServicesPage() {
                   <th className="px-6 py-3.5">Service</th>
                   <th className="px-6 py-3.5">Duration</th>
                   <th className="px-6 py-3.5">Price</th>
-                  <th className="px-6 py-3.5 text-right">Status</th>
+                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#FAF8FC] bg-white">
@@ -304,7 +330,7 @@ export default function ServicesPage() {
                       </td>
 
                       {/* Active/Inactive Status Badge */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                             service.is_active
@@ -319,6 +345,18 @@ export default function ServicesPage() {
                           />
                           <span>{service.is_active ? "Active" : "Inactive"}</span>
                         </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(service)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -388,11 +426,21 @@ export default function ServicesPage() {
                     </p>
                   )}
 
-                  <div className="pt-1 flex items-center justify-between border-t border-[#FAF8FC] text-xs">
-                    <span className="text-[#7A6F86]">Price</span>
-                    <span className="font-bold text-[#33283D]">
-                      {formatCurrency(service.price)}
-                    </span>
+                  <div className="pt-2 flex items-center justify-between border-t border-[#FAF8FC] text-xs">
+                    <div>
+                      <span className="text-[#7A6F86]">Price: </span>
+                      <span className="font-bold text-[#33283D]">
+                        {formatCurrency(service.price)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(service)}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -408,6 +456,14 @@ export default function ServicesPage() {
           </div>
         </div>
       )}
+
+      {/* SlideOver for Create & Edit */}
+      <ServiceFormSlideOver
+        open={isSlideOverOpen}
+        onClose={() => setIsSlideOverOpen(false)}
+        service={editingService}
+        onSuccess={handleSaveService}
+      />
     </div>
   );
 }
