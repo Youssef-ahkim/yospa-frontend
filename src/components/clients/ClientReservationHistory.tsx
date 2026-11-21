@@ -95,6 +95,15 @@ export function ClientReservationHistory({
                           <Tag className="w-4 h-4 text-[#9275BC] flex-shrink-0" />
                           {serviceName}
                         </div>
+                        {res.therapist && (
+                          <div className="flex items-center gap-1.5 text-xs text-[#7A6F86] mt-0.5">
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: res.therapist.color || "#7455A4" }}
+                            />
+                            <span>{res.therapist.name}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <StatusBadge status={res.status} />
@@ -171,11 +180,22 @@ export function ClientReservationHistory({
                 <div key={res.id} className="bg-white border border-[#EAE4F2] rounded-2xl p-4 shadow-xs space-y-3">
                   {/* Top row */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Tag className="w-4 h-4 text-[#9275BC] flex-shrink-0" />
-                      <span className="text-sm font-semibold text-[#33283D] truncate">{serviceName}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Tag className="w-4 h-4 text-[#9275BC] flex-shrink-0" />
+                        <span className="text-sm font-semibold text-[#33283D] truncate">{serviceName}</span>
+                      </div>
+                      {res.therapist && (
+                        <div className="flex items-center gap-1.5 text-xs text-[#7A6F86] mt-1 pl-6">
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: res.therapist.color || "#7455A4" }}
+                          />
+                          <span>{res.therapist.name}</span>
+                        </div>
+                      )}
                     </div>
-                    <StatusBadge status={res.status} className="text-[11px]" />
+                    <StatusBadge status={res.status} className="text-[11px] flex-shrink-0" />
                   </div>
 
                   {/* Meta row */}

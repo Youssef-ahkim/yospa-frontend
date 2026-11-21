@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api";
 import {
   Client,
   Service,
+  Therapist,
   Reservation,
   ReservationStatus,
   RESERVATION_STATUSES,
@@ -32,6 +33,7 @@ export default function ReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,14 +57,16 @@ export default function ReservationsPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const [reservationsData, clientsData, servicesData] = await Promise.all([
+      const [reservationsData, clientsData, servicesData, therapistsData] = await Promise.all([
         apiFetch<Reservation[]>("/reservations"),
         apiFetch<Client[]>("/clients").catch(() => []),
         apiFetch<Service[]>("/services").catch(() => []),
+        apiFetch<Therapist[]>("/therapists").catch(() => []),
       ]);
       setReservations(reservationsData);
       setClients(clientsData);
       setServices(servicesData);
+      setTherapists(therapistsData);
     } catch (err: any) {
       setError(err.message || "Failed to load reservations.");
     } finally {
@@ -480,6 +484,7 @@ export default function ReservationsPage() {
         initialStartTime={slotStartTime}
         clients={clients}
         services={services}
+        therapists={therapists}
         existingReservations={reservations}
         onSuccess={handleReservationSaved}
       />

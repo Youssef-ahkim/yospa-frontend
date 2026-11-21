@@ -25,7 +25,8 @@ import {
   XCircle, 
   ExternalLink,
   Edit3,
-  Trash2
+  Trash2,
+  UserCheck
 } from "lucide-react";
 
 interface EventDetailPanelProps {
@@ -199,6 +200,24 @@ export function EventDetailPanel({
                 {formatCurrency(reservation.total_price)}
               </p>
             </div>
+          </div>
+
+          {/* Assigned Therapist */}
+          <div className="p-3 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2] flex items-center justify-between text-sm">
+            <span className="text-xs text-[#7A6F86] font-semibold flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-[#7455A4]" /> Therapist
+            </span>
+            {reservation.therapist ? (
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2.5 h-2.5 rounded-full shadow-2xs"
+                  style={{ backgroundColor: reservation.therapist.color || "#7455A4" }}
+                />
+                <span className="font-bold text-[#33283D]">{reservation.therapist.name}</span>
+              </div>
+            ) : (
+              <span className="text-xs text-[#7A6F86]/60 italic">Unassigned</span>
+            )}
           </div>
 
           {/* Time & Date */}

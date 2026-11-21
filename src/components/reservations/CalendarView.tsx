@@ -415,13 +415,15 @@ export function CalendarView({
                             height: `${seg.height}px`,
                             left: `${seg.leftPercent}%`,
                             width: `${seg.widthPercent}%`,
+                            borderLeftWidth: res.therapist?.color ? "4px" : undefined,
+                            borderLeftColor: res.therapist?.color || undefined,
                           }}
                           className={`absolute z-10 p-1.5 rounded-lg border text-left overflow-hidden transition-all shadow-xs hover:shadow-md hover:scale-[1.01] hover:z-30 cursor-pointer flex flex-col justify-between ${
                             isCancelled
                               ? "bg-gray-50/80 border-dashed border-gray-300 text-gray-500 opacity-65"
                               : `${statusConfig.badgeClass}`
                           }`}
-                          title={`${serviceName} - ${clientName} (${startTime} - ${endTime})`}
+                          title={`${serviceName} - ${clientName}${res.therapist ? ` (Therapist: ${res.therapist.name})` : ""} (${startTime} - ${endTime})`}
                         >
                           <div className="min-w-0">
                             {/* Service Name & Time */}
@@ -435,9 +437,16 @@ export function CalendarView({
                               </span>
                             </div>
 
-                            {/* Client Name */}
-                            <div className="text-[11px] truncate text-gray-700 font-medium mt-0.5">
-                              {clientName}
+                            {/* Client & Therapist Name */}
+                            <div className="flex items-center gap-1.5 text-[11px] truncate text-gray-700 font-medium mt-0.5">
+                              {res.therapist && (
+                                <span
+                                  className="w-2 h-2 rounded-full flex-shrink-0 shadow-2xs"
+                                  style={{ backgroundColor: res.therapist.color }}
+                                  title={`Therapist: ${res.therapist.name}`}
+                                />
+                              )}
+                              <span className="truncate">{clientName}</span>
                             </div>
                           </div>
 

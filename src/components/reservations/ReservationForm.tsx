@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Client, Service, Reservation, ReservationStatus } from "@/types";
+import { Client, Service, Therapist, Reservation, ReservationStatus } from "@/types";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { FormField } from "@/components/ui/FormField";
 import { Spinner } from "@/components/ui/Spinner";
@@ -19,6 +19,7 @@ interface ReservationFormProps {
   initialStartTime?: string;
   clients: Client[];
   services: Service[];
+  therapists?: Therapist[];
   existingReservations?: Reservation[];
   onSuccess: (saved: Reservation, isEdit: boolean) => void;
 }
@@ -73,6 +74,7 @@ export function ReservationForm({
   initialStartTime,
   clients,
   services,
+  therapists = [],
   existingReservations = [],
   onSuccess,
 }: ReservationFormProps) {
@@ -82,6 +84,7 @@ export function ReservationForm({
   const [formData, setFormData] = useState({
     client_id: "",
     service_id: "",
+    therapist_id: "",
     start_time: "",
     end_time: "",
     total_price: "",
@@ -108,6 +111,21 @@ export function ReservationForm({
     }
     return services;
   }, [services, initial]);
+
+  // In edit mode: if initial.therapist is inactive (not in active therapists), append it with (inactive)
+  const availableTherapists = useMemo(() => {
+    const t = initial?.therapist;
+    if (t && !therapists.some((item) => item.id === t.id)) {
+      return [
+        ...therapists,
+        {
+          ...t,
+          name: `${t.name} (inactive)`,
+        },
+      ];
+    }
+    return therapists;
+  }, [therapists, initial]);
 
   // In edit mode: defensive check to ensure initial.client is included in options
   const availableClients = useMemo(() => {
@@ -170,6 +188,7 @@ export function ReservationForm({
         setFormData({
           client_id: String(initial.client_id || initial.client?.id || ""),
           service_id: String(initial.service_id || initial.service?.id || ""),
+          therapist_id: initial.therapist_id != null ? String(initial.therapist_id) : (initial.therapist?.id != null ? String(initial.therapist.id) : ""),
           start_time: toLocalDatetimeInput(initial.start_time),
           end_time: toLocalDatetimeInput(initial.end_time),
           total_price: initial.total_price != null ? String(initial.total_price) : "",
@@ -184,6 +203,7 @@ export function ReservationForm({
         setFormData({
           client_id: clients.length > 0 ? String(clients[0].id) : "",
           service_id: defaultService ? String(defaultService.id) : "",
+          therapist_id: "",
           start_time: start,
           end_time: end,
           total_price: defaultService ? String(defaultService.price) : "",
@@ -265,10 +285,11 @@ export function ReservationForm({
     setIsSubmitting(true);
     try {
       if (isEdit && initial) {
-        // PATCH: send client_id, service_id, start_time, end_time (both always), total_price, notes. Status omitted.
+        // PATCH: send client_id, service_id, therapist_id, start_time, end_time (both always), total_price, notes. Status omitted.
         const payload = {
           client_id: Number(formData.client_id),
           service_id: Number(formData.service_id),
+          therapist_id: formData.therapist_id ? Number(formData.therapist_id) : null,
           start_time: formatForApi(formData.start_time),
           end_time: formatForApi(formData.end_time),
           total_price: parseFloat(String(formData.total_price)),
@@ -291,6 +312,7 @@ export function ReservationForm({
         const payload = {
           client_id: Number(formData.client_id),
           service_id: Number(formData.service_id),
+          therapist_id: formData.therapist_id ? Number(formData.therapist_id) : null,
           start_time: formatForApi(formData.start_time),
           end_time: formatForApi(formData.end_time),
           total_price: parseFloat(String(formData.total_price)),
@@ -438,6 +460,22 @@ export function ReservationForm({
               ))}
             </select>
           )}
+        </FormField>
+
+        {/* Therapist Picker */}
+        <FormField label="Assigned Therapist" error={fieldErrors.therapist_id?.[0]}>
+          <select
+            value={formData.therapist_id}
+            onChange={(e) => setFormData((prev) => ({ ...prev, therapist_id: e.target.value }))}
+            className={inputCls("therapist_id") + " bg-white"}
+          >
+            <option value="">Unassigned</option>
+            {availableTherapists.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
         </FormField>
 
         {/* Date & Time Grid */}
