@@ -3,9 +3,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/a
 export class ApiError extends Error {
   status: number;
   errors?: Record<string, string[]>;
-  data?: any;
+  data?: unknown;
 
-  constructor(message: string, status: number, errors?: Record<string, string[]>, data?: any) {
+  constructor(message: string, status: number, errors?: Record<string, string[]>, data?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -79,17 +79,17 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
       ...customOptions,
       headers: defaultHeaders,
     });
-  } catch (err) {
+  } catch {
     // Network error, likely offline
     throw new ApiError('Offline', 0);
   }
 
 
   // Parse JSON response if available
-  let data: any = null;
+  let data: (Record<string, unknown> & { message?: string; errors?: Record<string, string[]> }) | null = null;
   if (response.status !== 204) {
     try {
-      data = await response.json();
+      data = (await response.json()) as Record<string, unknown> & { message?: string; errors?: Record<string, string[]> };
     } catch {
       // Not JSON (e.g., plain text like "Offline"). Fallback to raw text.
       try {
@@ -122,6 +122,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
       if (onDeactivatedHandler) {
         onDeactivatedHandler();
       } else if (window.location.pathname !== '/login') {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Hard redirect required to evict session on account deactivation
         window.location.href = '/login?deactivated=1';
       }
     }

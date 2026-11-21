@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { Therapist } from "@/types";
 import { usePermissions } from "@/lib/permissions";
 import { useToast } from "@/context/ToastContext";
@@ -59,14 +59,15 @@ export default function TherapistsPage() {
           a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
         )
       );
-    } catch (err: any) {
-      setError(err?.message || "Failed to load therapists. Please check your connection.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load therapists. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch therapists on initial page mount
     fetchTherapists();
   }, []);
 
@@ -145,8 +146,8 @@ export default function TherapistsPage() {
         response.message ||
           `Therapist "${therapist.name}" is now ${nextStatus ? "active" : "inactive"}.`
       );
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update therapist status.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update therapist status.");
     } finally {
       setInFlightIds((prev) => {
         const next = { ...prev };
@@ -173,16 +174,17 @@ export default function TherapistsPage() {
       setTherapists((prev) => prev.filter((t) => t.id !== target.id));
       setDeleteTarget(null);
       toast.success(response.message || `Therapist "${target.name}" was deleted successfully.`);
-    } catch (err: any) {
-      if (err?.status === 409) {
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      if (apiErr?.status === 409) {
         setDeleteTarget(null);
-        toast.error(err.message || "This therapist cannot be deleted because they have existing reservations.");
+        toast.error(apiErr.message || "This therapist cannot be deleted because they have existing reservations.");
         const isActive = target.is_active ?? true;
         if (isActive) {
           setDeactivateTarget(target);
         }
       } else {
-        toast.error(err?.message || "Failed to delete therapist.");
+        toast.error(err instanceof Error ? err.message : "Failed to delete therapist.");
       }
     } finally {
       setIsDeleting(false);
@@ -215,8 +217,8 @@ export default function TherapistsPage() {
       setTherapists((prev) => prev.map((t) => (t.id === target.id ? updated : t)));
       toast.success(response.message || `Therapist "${target.name}" was deactivated.`);
       setDeactivateTarget(null);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to deactivate therapist.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to deactivate therapist.");
     } finally {
       setIsDeactivating(false);
       setInFlightIds((prev) => {

@@ -172,6 +172,7 @@ export function ReservationForm({
   // Sync form state when opened or when initial changes
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Populate or reset reservation form fields when opening or target changes
       setFieldErrors({});
       setIsSubmitting(false);
       setPriceManuallyEdited(false);
@@ -326,18 +327,19 @@ export function ReservationForm({
         onSuccess(response.reservation, false);
         onClose();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.errors) {
-        setFieldErrors(err.errors);
+        const errors = err.errors;
+        setFieldErrors(errors);
         const knownFields = ["client_id", "service_id", "start_time", "end_time", "total_price", "notes"];
-        const nonFieldKeys = Object.keys(err.errors).filter((k) => !knownFields.includes(k));
+        const nonFieldKeys = Object.keys(errors).filter((k) => !knownFields.includes(k));
         if (nonFieldKeys.length > 0) {
-          toast.error(err.errors[nonFieldKeys[0]][0] || err.message);
+          toast.error(errors[nonFieldKeys[0]][0] || err.message);
         } else {
           toast.error("Please check the form inputs.");
         }
       } else {
-        toast.error(err.message || (isEdit ? "Failed to update reservation." : "Failed to create reservation."));
+        toast.error(err instanceof Error ? err.message : (isEdit ? "Failed to update reservation." : "Failed to create reservation."));
       }
     } finally {
       setIsSubmitting(false);

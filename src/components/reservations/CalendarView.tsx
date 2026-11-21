@@ -20,20 +20,13 @@ import {
   formatTimeDisplay, 
   toLocalDatetimeString, 
   getEventSegmentForDay, 
-  computeOverlapLayout,
-  PositionedSegment
+  computeOverlapLayout
 } from "./calendarUtils";
 import { EventDetailPanel } from "./EventDetailPanel";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Calendar as CalendarIcon, 
-  Clock, 
-  Eye, 
-  EyeOff, 
-  AlertTriangle,
-  User,
-  Tag
+  Calendar as CalendarIcon
 } from "lucide-react";
 
 interface CalendarViewProps {
@@ -98,6 +91,7 @@ export function CalendarView({
   // Default to day view on small mobile screens (< 768px)
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial responsive viewport default on mount
       setViewMode("day");
     }
   }, []);
@@ -113,12 +107,13 @@ export function CalendarView({
     if (selectedReservation) {
       const updated = reservations.find((r) => r.id === selectedReservation.id);
       if (updated) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize selected reservation with updated reservations prop
         setSelectedReservation(updated);
       } else {
         setSelectedReservation(null);
       }
     }
-  }, [reservations, selectedReservation?.id]);
+  }, [reservations, selectedReservation]);
 
   // If statusFilter is "cancelled", show cancelled regardless of toggle
   const effectiveShowCancelled = showCancelled || statusFilter === "cancelled";

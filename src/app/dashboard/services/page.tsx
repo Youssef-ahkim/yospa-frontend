@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { Service } from "@/types";
 import { usePermissions } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/currency";
@@ -54,14 +54,15 @@ export default function ServicesPage() {
       setError(null);
       const data = await apiFetch<Service[]>("/services?all=1");
       setServices(data);
-    } catch (err: any) {
-      setError(err?.message || "Failed to load services. Please check your connection.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load services. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch services on initial page mount
     fetchServices();
   }, []);
 
@@ -136,8 +137,8 @@ export default function ServicesPage() {
         response.message ||
           `Service "${service.name}" is now ${nextStatus ? "active" : "inactive"}.`
       );
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update service status.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update service status.");
     } finally {
       setInFlightIds((prev) => {
         const next = { ...prev };
@@ -164,17 +165,18 @@ export default function ServicesPage() {
       setServices((prev) => prev.filter((s) => s.id !== target.id));
       setDeleteTarget(null);
       toast.success(response.message || `Service "${target.name}" was deleted successfully.`);
-    } catch (err: any) {
-      if (err?.status === 409) {
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      if (apiErr?.status === 409) {
         // Close delete dialog first
         setDeleteTarget(null);
-        toast.error(err.message || "This service cannot be deleted because it has existing reservations.");
+        toast.error(apiErr.message || "This service cannot be deleted because it has existing reservations.");
         // Offer deactivate instead if currently active
         if (target.is_active) {
           setDeactivateTarget(target);
         }
       } else {
-        toast.error(err?.message || "Failed to delete service.");
+        toast.error(err instanceof Error ? err.message : "Failed to delete service.");
       }
     } finally {
       setIsDeleting(false);
@@ -207,8 +209,8 @@ export default function ServicesPage() {
       setServices((prev) => prev.map((s) => (s.id === target.id ? updated : s)));
       toast.success(response.message || `Service "${target.name}" was deactivated.`);
       setDeactivateTarget(null);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to deactivate service.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to deactivate service.");
     } finally {
       setIsDeactivating(false);
       setInFlightIds((prev) => {

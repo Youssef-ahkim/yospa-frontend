@@ -175,8 +175,8 @@ export function useDashboardData() {
         topService,
         monthlyTrend: monthlyBuckets,
       });
-    } catch (err: any) {
-      setError(err?.message || "Failed to load dashboard data. Please check your connection.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data. Please check your connection.");
       setData(null);
     } finally {
       setIsLoading(false);
@@ -184,6 +184,7 @@ export function useDashboardData() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch dashboard metrics on hook initialization
     fetchData();
   }, [fetchData]);
 

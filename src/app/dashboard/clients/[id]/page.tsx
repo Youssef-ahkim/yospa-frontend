@@ -68,6 +68,7 @@ function ClientDetailContent() {
 
   useEffect(() => {
     if (!clientId || isNaN(clientId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Validate clientId on mount before initiating fetch
       setError("Invalid client ID.");
       setIsLoading(false);
       return;
@@ -91,11 +92,11 @@ function ClientDetailContent() {
         });
 
         setReservations(matchingReservations);
-      } catch (err: any) {
-        if (err.status === 404) {
+      } catch (err: unknown) {
+        if (err instanceof ApiError && err.status === 404) {
           setError("Client not found or you do not have permission to view this client.");
         } else {
-          setError(err.message || "Failed to load client details.");
+          setError(err instanceof Error ? err.message : "Failed to load client details.");
         }
       } finally {
         setIsLoading(false);
@@ -139,11 +140,11 @@ function ClientDetailContent() {
       setClient(updatedClient);
       setIsEditOpen(false);
       toast.success("Client profile updated successfully.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.errors) {
         setFieldErrors(err.errors);
       }
-      toast.error(err.message || "Failed to update client. Please check the inputs.");
+      toast.error(err instanceof Error ? err.message : "Failed to update client. Please check the inputs.");
     } finally {
       setIsUpdating(false);
     }
@@ -159,11 +160,12 @@ function ClientDetailContent() {
 
       toast.success("Client deleted successfully.");
       router.push("/dashboard/clients");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
       const humanMessage =
-        err.status === 409 || err.status === 400
+        apiErr?.status === 409 || apiErr?.status === 400
           ? "This client cannot be deleted because they have active appointments or dependencies."
-          : err.message || "Unable to delete client. Please try again or contact support.";
+          : (err as Error)?.message || "Unable to delete client. Please try again or contact support.";
       toast.error(humanMessage);
       setIsDeleting(false);
     }
@@ -191,8 +193,8 @@ function ClientDetailContent() {
         prev.map((item) => (item.id === reservation.id ? updated : item))
       );
       toast.success(`Reservation marked as ${newStatus}.`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update reservation status.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update reservation status.");
     } finally {
       setUpdatingResId(null);
     }
@@ -219,8 +221,8 @@ function ClientDetailContent() {
       );
       setCancelResTarget(null);
       toast.success("Reservation cancelled.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to cancel reservation.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel reservation.");
     } finally {
       setIsCancellingRes(false);
       setUpdatingResId(null);

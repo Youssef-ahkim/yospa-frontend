@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/context/ToastContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Service } from "@/types";
-import { Sparkles, Edit3, Plus } from "lucide-react";
+import { Edit3, Plus } from "lucide-react";
 
 interface ServiceFormSlideOverProps {
   open: boolean;
@@ -39,6 +39,7 @@ export function ServiceFormSlideOver({
   // Sync state whenever slideover opens or service changes
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset form state when slide-over opens or target service changes
       setFieldErrors({});
       if (service) {
         setFormData({
@@ -112,13 +113,13 @@ export function ServiceFormSlideOver({
         body: JSON.stringify(payload),
       });
 
-      const saved = response.service || (response as any);
+      const saved = response.service || (response as unknown as Service);
       toast.success(
         response.message || (isEdit ? "Service updated successfully." : "Service created successfully.")
       );
       onSuccess(saved, isEdit);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.errors) {
         setFieldErrors(err.errors);
         const knownFields = ["name", "duration_minutes", "price", "description", "is_active"];
@@ -129,7 +130,7 @@ export function ServiceFormSlideOver({
           toast.error("Validation error. Please check your inputs.");
         }
       } else {
-        toast.error(err?.message || "Failed to save service. Please try again.");
+        toast.error(err instanceof Error ? err.message : "Failed to save service. Please try again.");
       }
     } finally {
       setIsSubmitting(false);

@@ -67,14 +67,15 @@ export default function ReservationsPage() {
       setClients(clientsData);
       setServices(servicesData);
       setTherapists(therapistsData);
-    } catch (err: any) {
-      setError(err.message || "Failed to load reservations.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load reservations.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch reservations, services, and therapists on mount
     fetchData();
   }, []);
 
@@ -131,8 +132,8 @@ export default function ReservationsPage() {
       const updated = response.reservation || { ...reservation, status: newStatus };
       setReservations((prev) => prev.map((item) => (item.id === reservation.id ? updated : item)));
       toast.success(`Reservation marked as ${RESERVATION_STATUSES[newStatus].label}.`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update reservation status.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update reservation status.");
     } finally {
       setUpdatingId(null);
     }
@@ -151,8 +152,8 @@ export default function ReservationsPage() {
       setReservations((prev) => prev.map((item) => (item.id === cancelTarget.id ? updated : item)));
       setCancelTarget(null);
       toast.success("Reservation cancelled.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to cancel reservation.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel reservation.");
     } finally {
       setIsCancelling(false);
       setUpdatingId(null);
@@ -171,8 +172,8 @@ export default function ReservationsPage() {
       setReservations((prev) => prev.filter((r) => r.id !== deleteTarget.id));
       setDeleteTarget(null);
       toast.success(response.message || "Reservation deleted successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete reservation.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete reservation.");
     } finally {
       setIsDeleting(false);
       setUpdatingId(null);

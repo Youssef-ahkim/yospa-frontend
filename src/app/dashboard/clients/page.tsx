@@ -43,14 +43,15 @@ export default function ClientsPage() {
       setError(null);
       const data = await apiFetch<Client[]>("/clients");
       setClients(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load clients.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load clients.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch clients on initial page mount
     fetchClients();
   }, []);
 
@@ -78,16 +79,16 @@ export default function ClientsPage() {
         body: JSON.stringify(payload),
       });
 
-      const newClient = response.client || (response as any);
+      const newClient = response.client || (response as unknown as Client);
       setClients((prev) => [newClient, ...prev]);
       setIsModalOpen(false);
       setFormData({ full_name: "", email: "", phone: "", notes: "" });
       toast.success("Client created successfully.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.errors) {
         setFieldErrors(err.errors);
       }
-      toast.error(err.message || "Failed to create client. Please check the inputs.");
+      toast.error(err instanceof Error ? err.message : "Failed to create client. Please check the inputs.");
     } finally {
       setIsSubmitting(false);
     }

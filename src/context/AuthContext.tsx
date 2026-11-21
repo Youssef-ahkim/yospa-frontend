@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const storedToken = localStorage.getItem('yospa_token');
     if (storedToken) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate active session token from local storage on mount
       setToken(storedToken);
       apiFetch<User>('/user', { token: storedToken })
         .then((userData) => {

@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/context/ToastContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Therapist } from "@/types";
-import { UserCheck, Edit3, Plus, Palette } from "lucide-react";
+import { UserCheck, Edit3, Palette } from "lucide-react";
 
 interface TherapistFormSlideOverProps {
   open: boolean;
@@ -53,6 +53,7 @@ export function TherapistFormSlideOver({
   // Sync state whenever slideover opens or therapist changes
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset therapist form state when slide-over opens or target changes
       setFieldErrors({});
       if (therapist) {
         setFormData({
@@ -107,7 +108,7 @@ export function TherapistFormSlideOver({
     setIsSubmitting(true);
 
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         name: trimmedName,
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
@@ -124,13 +125,13 @@ export function TherapistFormSlideOver({
         body: JSON.stringify(payload),
       });
 
-      const saved = response.therapist || (response as any);
+      const saved = response.therapist || (response as unknown as Therapist);
       toast.success(
         response.message || (isEdit ? "Therapist updated successfully." : "Therapist created successfully.")
       );
       onSuccess(saved, isEdit);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.errors) {
         setFieldErrors(err.errors);
         const knownFields = ["name", "phone", "email", "color", "notes", "is_active"];
@@ -141,7 +142,7 @@ export function TherapistFormSlideOver({
           toast.error("Validation error. Please check your inputs.");
         }
       } else {
-        toast.error(err?.message || "Failed to save therapist. Please try again.");
+        toast.error(err instanceof Error ? err.message : "Failed to save therapist. Please try again.");
       }
     } finally {
       setIsSubmitting(false);

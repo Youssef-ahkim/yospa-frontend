@@ -52,6 +52,7 @@ function LoginFormContent() {
   // Handle one-time session expiry banner and strip expired=1 from URL
   useEffect(() => {
     if (isExpired) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Check query param for session expiry on mount
       setSessionExpired(true);
       const safeNext = getSafeRedirectPath(nextParam);
       const nextQuery = nextParam && safeNext !== "/dashboard" ? `?next=${encodeURIComponent(safeNext)}` : "";
@@ -62,6 +63,7 @@ function LoginFormContent() {
   // Handle one-time account deactivated banner and strip deactivated=1 from URL
   useEffect(() => {
     if (isDeactivated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Check query param for deactivated notification on mount
       setAccountDeactivated(true);
       router.replace("/login", { scroll: false });
     }
@@ -89,8 +91,8 @@ function LoginFormContent() {
       const destination = getSafeRedirectPath(nextParam);
       // Single redirect handled by login()
       login(data.token, data.user, destination);
-    } catch (err: any) {
-      setError(err.message || "Invalid email or password. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
     }

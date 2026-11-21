@@ -85,8 +85,8 @@ export default function StaffPage() {
           a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
         )
       );
-    } catch (err: any) {
-      setError(err?.message || "Failed to load staff accounts. Please check your connection.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load staff accounts. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +94,7 @@ export default function StaffPage() {
 
   useEffect(() => {
     if (!isAuthLoading && canManageStaff) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch staff list on initial page mount
       fetchStaff();
     }
   }, [isAuthLoading, canManageStaff]);
@@ -178,8 +179,8 @@ export default function StaffPage() {
         response.message ||
           `Account for "${member.name}" is now ${nextStatus ? "active" : "deactivated"}.`
       );
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update account status.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update account status.");
     } finally {
       setInFlightIds((prev) => {
         const next = { ...prev };

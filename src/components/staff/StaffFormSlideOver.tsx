@@ -8,7 +8,7 @@ import { useToast } from "@/context/ToastContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Staff, Role } from "@/types";
 import { usePermissions } from "@/lib/permissions";
-import { UserPlus, Edit3, Eye, EyeOff, Shield, Info, Lock } from "lucide-react";
+import { UserPlus, Edit3, Eye, EyeOff, Info } from "lucide-react";
 
 interface StaffFormSlideOverProps {
   open: boolean;
@@ -53,6 +53,7 @@ export function StaffFormSlideOver({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset staff form state when slide-over opens or target staff changes
       setFieldErrors({});
       setShowPassword(false);
       if (staff) {
@@ -125,7 +126,7 @@ export function StaffFormSlideOver({
     setIsSubmitting(true);
 
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         name: trimmedName,
         email: trimmedEmail,
         role: formData.role,
@@ -146,13 +147,13 @@ export function StaffFormSlideOver({
         body: JSON.stringify(payload),
       });
 
-      const saved = response.staff || (response as any);
+      const saved = response.staff || (response as unknown as Staff);
       toast.success(
         response.message || (isEdit ? "Staff account updated successfully." : "Staff account created successfully.")
       );
       onSuccess(saved, isEdit);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.errors) {
         setFieldErrors(err.errors);
         const knownFields = ["name", "email", "password", "role", "is_active"];
@@ -163,8 +164,7 @@ export function StaffFormSlideOver({
           toast.error("Validation error. Please check your inputs.");
         }
       } else {
-        // Map 409 (last active owner), 403 (unauthorized action), and general errors to toasts
-        toast.error(err?.message || "Failed to save staff account.");
+        toast.error(err instanceof Error ? err.message : "Failed to save staff account. Please try again.");
       }
     } finally {
       setIsSubmitting(false);

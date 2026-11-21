@@ -1,4 +1,4 @@
-import { Role, User } from "@/types";
+import { Role } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 
 /**
