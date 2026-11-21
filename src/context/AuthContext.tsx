@@ -2,22 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, getSafeRedirectPath, setOnUnauthorizedHandler } from '@/lib/api';
-
-export interface Spa {
-  id: number;
-  name: string;
-  slug: string;
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  spa_id: number | null;
-  spa?: Spa | null;
-}
+import { apiFetch, getSafeRedirectPath, setOnUnauthorizedHandler, setOnDeactivatedHandler } from '@/lib/api';
+import { Role, User, Spa } from '@/types';
+export type { Role, User, Spa };
 
 interface AuthContextType {
   user: User | null;
@@ -50,13 +37,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  // Register the 401 callback with apiFetch
+  // Handler for 403 Account Deactivated.
+  const handleDeactivated = useCallback(() => {
+    localStorage.removeItem('yospa_token');
+    setToken(null);
+    setUser(null);
+    setIsLoading(false);
+
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      router.replace('/login?deactivated=1');
+    }
+  }, [router]);
+
+  // Register the auth callbacks with apiFetch
   useEffect(() => {
     setOnUnauthorizedHandler(handleUnauthorized);
+    setOnDeactivatedHandler(handleDeactivated);
     return () => {
       setOnUnauthorizedHandler(null);
+      setOnDeactivatedHandler(null);
     };
-  }, [handleUnauthorized]);
+  }, [handleUnauthorized, handleDeactivated]);
 
   // Initial session validation on mount
   useEffect(() => {

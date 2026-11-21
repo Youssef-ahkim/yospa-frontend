@@ -39,6 +39,7 @@ function LoginFormContent() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [accountDeactivated, setAccountDeactivated] = useState(false);
 
   const { login, user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
@@ -46,6 +47,7 @@ function LoginFormContent() {
 
   const nextParam = searchParams.get("next");
   const isExpired = searchParams.get("expired") === "1";
+  const isDeactivated = searchParams.get("deactivated") === "1";
 
   // Handle one-time session expiry banner and strip expired=1 from URL
   useEffect(() => {
@@ -56,6 +58,14 @@ function LoginFormContent() {
       router.replace(`/login${nextQuery}`, { scroll: false });
     }
   }, [isExpired, nextParam, router]);
+
+  // Handle one-time account deactivated banner and strip deactivated=1 from URL
+  useEffect(() => {
+    if (isDeactivated) {
+      setAccountDeactivated(true);
+      router.replace("/login", { scroll: false });
+    }
+  }, [isDeactivated, router]);
 
   // Wait for auth to finish loading before redirecting an already signed-in user
   useEffect(() => {
@@ -180,6 +190,14 @@ function LoginFormContent() {
             <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 animate-in fade-in duration-200">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
               <p className="text-sm font-medium">Session expired, please sign in again.</p>
+            </div>
+          )}
+
+          {/* Account Deactivated Banner */}
+          {accountDeactivated && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 animate-in fade-in duration-200">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-600" />
+              <p className="text-sm font-medium">Your account has been deactivated.</p>
             </div>
           )}
 

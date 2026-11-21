@@ -46,6 +46,13 @@ export function setOnUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   onUnauthorizedHandler = handler;
 }
 
+type DeactivatedHandler = () => void;
+let onDeactivatedHandler: DeactivatedHandler | null = null;
+
+export function setOnDeactivatedHandler(handler: DeactivatedHandler | null) {
+  onDeactivatedHandler = handler;
+}
+
 interface FetchOptions extends RequestInit {
   token?: string;
 }
@@ -78,6 +85,22 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
   }
 
 
+  // Parse JSON response if available
+  let data: any = null;
+  if (response.status !== 204) {
+    try {
+      data = await response.json();
+    } catch {
+      // Not JSON (e.g., plain text like "Offline"). Fallback to raw text.
+      try {
+        const text = await response.text();
+        data = { message: text };
+      } catch {
+        data = null;
+      }
+    }
+  }
+
   // Handle 401 Unauthorized (expired or missing session).
   // Skip expiry handling only when the path is exactly "/login" (so credential failures stay normal errors).
   if (response.status === 401 && endpoint !== '/login') {
@@ -91,20 +114,18 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     throw new ApiError('Unauthenticated', 401);
   }
 
-  // Parse JSON response if available
-  let data: any = null;
-  if (response.status !== 204) {
-    try {
-      data = await response.json();
-    } catch (e) {
-      // Not JSON (e.g., plain text like "Offline"). Fallback to raw text.
-      try {
-        const text = await response.text();
-        data = { message: text };
-      } catch (_) {
-        data = null;
+  // Handle 403 Deactivated account ("Your account has been deactivated.")
+  // Evicts token and triggers redirect to login with deactivated banner.
+  if (response.status === 403 && data?.message === 'Your account has been deactivated.') {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('yospa_token');
+      if (onDeactivatedHandler) {
+        onDeactivatedHandler();
+      } else if (window.location.pathname !== '/login') {
+        window.location.href = '/login?deactivated=1';
       }
     }
+    throw new ApiError('Your account has been deactivated.', 403, data?.errors, data);
   }
 
   if (!response.ok) {

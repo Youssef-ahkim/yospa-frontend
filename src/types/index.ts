@@ -1,3 +1,5 @@
+export type Role = "owner" | "admin" | "staff";
+
 export interface Spa {
   id: number;
   name: string;
@@ -8,9 +10,34 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role: Role;
   spa_id: number | null;
   spa?: Spa | null;
+}
+
+export interface Staff {
+  id: number;
+  spa_id?: number;
+  name: string;
+  email: string;
+  role: Role;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Therapist {
+  id: number;
+  spa_id?: number;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  color: string;
+  notes?: string | null;
+  is_active?: boolean;
+  user_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Client {
@@ -77,6 +104,7 @@ export interface Reservation {
   spa_id?: number;
   client_id?: number;
   service_id?: number;
+  therapist_id?: number | null;
   start_time: string;
   end_time: string;
   total_price: number | string;
@@ -86,6 +114,7 @@ export interface Reservation {
   updated_at?: string;
   client?: Client | null;
   service?: Service | null;
+  therapist?: Therapist | null;
 }
 
 export interface ApiResponse<T> {
