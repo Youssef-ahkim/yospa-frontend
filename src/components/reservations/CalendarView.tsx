@@ -64,12 +64,7 @@ export function CalendarView({
   updatingId,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      return "day";
-    }
-    return "week";
-  });
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [showCancelled, setShowCancelled] = useState<boolean>(false);
   const [therapistFilter, setTherapistFilter] = useState<string>("all");
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);

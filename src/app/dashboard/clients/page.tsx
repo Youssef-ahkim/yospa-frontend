@@ -4,11 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Client } from "@/types";
-import { useAuth } from "@/context/AuthContext";
-import { usePermissions } from "@/lib/permissions";
 import { useToast } from "@/context/ToastContext";
 import { SlideOver } from "@/components/ui/SlideOver";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField } from "@/components/ui/FormField";
 import { Spinner } from "@/components/ui/Spinner";
 import {
@@ -21,12 +18,10 @@ import {
   Users,
   AlertCircle,
   RotateCcw,
-  Trash2,
 } from "lucide-react";
 
 export default function ClientsPage() {
   const toast = useToast();
-  const { canDelete } = usePermissions();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +36,6 @@ export default function ClientsPage() {
     phone: "",
     notes: "",
   });
-
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchClients = async () => {
     try {
@@ -98,29 +90,6 @@ export default function ClientsPage() {
       toast.error(err.message || "Failed to create client. Please check the inputs.");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteClient = async () => {
-    if (!clientToDelete) return;
-    const id = clientToDelete.id;
-    setDeletingId(id);
-    try {
-      await apiFetch<{ message: string }>(`/clients/${id}`, {
-        method: "DELETE",
-      });
-      setClients((prev) => prev.filter((c) => c.id !== id));
-      toast.success("Client deleted successfully.");
-      setClientToDelete(null);
-    } catch (err: unknown) {
-      const apiErr = err instanceof ApiError ? err : null;
-      const humanMessage =
-        apiErr?.status === 409 || apiErr?.status === 400
-          ? "This client cannot be deleted because they have active appointments or dependencies."
-          : (err as Error)?.message || "Unable to delete client. Please try again or contact support.";
-      toast.error(humanMessage);
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -239,7 +208,6 @@ export default function ClientsPage() {
               </thead>
               <tbody className="divide-y divide-[#FAF8FC] bg-white">
                 {filteredClients.map((client) => {
-                  const isDeletingThis = deletingId === client.id;
                   return (
                     <tr key={client.id} className="hover:bg-[#FAF8FC] transition-colors group">
                       <td className="px-5 py-3.5 whitespace-nowrap">
@@ -276,31 +244,13 @@ export default function ClientsPage() {
                         {client.created_at ? new Date(client.created_at).toLocaleDateString() : "—"}
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                        <div className="inline-flex items-center justify-end gap-2">
-                          <Link
-                            href={`/dashboard/clients/${client.id}`}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7455A4] hover:text-[#5E4387] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            View
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </Link>
-                          {canDelete && (
-                            <button
-                              type="button"
-                              disabled={isDeletingThis}
-                              onClick={() => setClientToDelete(client)}
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50 border border-red-100"
-                              aria-label={`Delete ${client.full_name}`}
-                            >
-                              {isDeletingThis ? (
-                                <Spinner className="w-3.5 h-3.5" />
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                              <span>Delete</span>
-                            </button>
-                          )}
-                        </div>
+                        <Link
+                          href={`/dashboard/clients/${client.id}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7455A4] hover:text-[#5E4387] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          View
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
                       </td>
                     </tr>
                   );
@@ -312,7 +262,6 @@ export default function ClientsPage() {
           {/* Mobile Card View (360px-friendly, with >=40px touch targets) */}
           <div className="md:hidden divide-y divide-[#EAE4F2]">
             {filteredClients.map((client) => {
-              const isDeletingThis = deletingId === client.id;
               return (
                 <div key={client.id} className="p-4 space-y-3 bg-white">
                   <div className="flex items-center justify-between gap-3">
@@ -361,30 +310,14 @@ export default function ClientsPage() {
                   </div>
 
                   {/* Actions with >= 40px touch targets */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="pt-1">
                     <Link
                       href={`/dashboard/clients/${client.id}`}
-                      className="flex-1 min-h-[40px] inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                      className="w-full min-h-[40px] inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-4 py-2 rounded-xl transition-colors cursor-pointer"
                     >
                       View Details
                       <ChevronRight className="w-4 h-4" />
                     </Link>
-                    {canDelete && (
-                      <button
-                        type="button"
-                        disabled={isDeletingThis}
-                        onClick={() => setClientToDelete(client)}
-                        className="min-h-[40px] px-4 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50 border border-red-100"
-                        aria-label={`Delete ${client.full_name}`}
-                      >
-                        {isDeletingThis ? (
-                          <Spinner className="w-4 h-4" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                        <span>Delete</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -399,18 +332,6 @@ export default function ClientsPage() {
           </div>
         </div>
       )}
-
-      {/* Delete Client Confirm Dialog */}
-      <ConfirmDialog
-        open={!!clientToDelete}
-        onClose={() => setClientToDelete(null)}
-        onConfirm={handleDeleteClient}
-        title={`Delete Client "${clientToDelete?.full_name}"?`}
-        description="Are you sure you want to delete this client? This will permanently remove their profile and associated appointment data."
-        confirmLabel="Delete Client"
-        confirmLoadingLabel="Deleting..."
-        isConfirming={deletingId !== null}
-      />
 
       {/* Add Client Slide-Over */}
       <SlideOver
