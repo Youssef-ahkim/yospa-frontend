@@ -15,10 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Yospa Management",
+  title: {
+    default: "Yospa | Modern Spa Management",
+    template: "%s | Yospa",
+  },
   description: "Multi-tenant gym and spa management platform.",
   icons: {
-    icon: "/favi.png",
+    icon: "/favicon.ico",
   },
 };
 
