@@ -1,3 +1,5 @@
+import { Role } from '@/types';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 export class ApiError extends Error {
@@ -24,27 +26,43 @@ export class ApiError extends Error {
 }
 
 /**
- * Validates a redirect target path.
+ * Validates a redirect target path based on user role.
  * Accepts only safe relative paths starting with a single "/",
  * rejecting "//", backslashes, control characters, protocol URLs,
- * and any path starting with "/login". Defaults to "/dashboard".
+ * and any path starting with "/login".
+ * - "/platform..." is allowed only for a superuser.
+ * - "/dashboard..." is allowed only for non-superusers.
+ * - Otherwise falls back to the role's home (/platform for superuser, /dashboard for non-superusers).
  */
-export function getSafeRedirectPath(path: string | null | undefined): string {
-  if (!path || typeof path !== 'string') return '/dashboard';
+export function getSafeRedirectPath(
+  path: string | null | undefined,
+  role?: Role | null
+): string {
+  const defaultHome = role === 'superuser' ? '/platform' : '/dashboard';
+  if (!path || typeof path !== 'string') return defaultHome;
   const trimmed = path.trim();
   // Must start with exactly one "/" and reject protocol-relative "//"
-  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return '/dashboard';
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return defaultHome;
   // Reject backslashes which can be used for open redirects (e.g. /\evil.com)
-  if (trimmed.includes('\\')) return '/dashboard';
+  if (trimmed.includes('\\')) return defaultHome;
   // Reject ASCII control characters
-  if (/[\x00-\x1F\x7F]/.test(trimmed)) return '/dashboard';
+  if (/[\x00-\x1F\x7F]/.test(trimmed)) return defaultHome;
   // Reject protocol indicators (e.g. javascript:, http:, https:)
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) return '/dashboard';
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) return defaultHome;
   // Reject any path starting with /login to avoid loops
   if (trimmed === '/login' || trimmed.startsWith('/login?') || trimmed.startsWith('/login/')) {
-    return '/dashboard';
+    return defaultHome;
   }
-  return trimmed;
+  // Role checks:
+  // /platform... is allowed only for superuser
+  if (trimmed === '/platform' || trimmed.startsWith('/platform/')) {
+    return role === 'superuser' ? trimmed : defaultHome;
+  }
+  // /dashboard... is allowed only for non-superusers
+  if (trimmed === '/dashboard' || trimmed.startsWith('/dashboard/')) {
+    return role !== 'superuser' ? trimmed : defaultHome;
+  }
+  return defaultHome;
 }
 
 type UnauthorizedHandler = (currentPath?: string) => void;

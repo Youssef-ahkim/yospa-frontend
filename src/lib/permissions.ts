@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
  * NO deletes, NO writes on services/therapists/staff.
  * Admin = everything except creating/modifying owner/admin accounts.
  * Owner = everything.
+ * Superuser = platform management only; forbidden from tenant actions.
  */
 
 export function canManageServices(role?: Role | null): boolean {
@@ -28,6 +29,10 @@ export function canSeeRevenue(role?: Role | null): boolean {
   return role === "owner" || role === "admin";
 }
 
+export function canManagePlatform(role?: Role | null): boolean {
+  return role === "superuser";
+}
+
 export interface AccountEditPermission {
   canEdit: boolean;
   canDeactivate: boolean;
@@ -48,6 +53,10 @@ export function canEditAccount(
 ): AccountEditPermission {
   if (!currentUser) {
     return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Not logged in." };
+  }
+
+  if (currentUser.role === "superuser" || targetUser.role === "superuser") {
+    return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Platform accounts cannot be edited from tenant management." };
   }
 
   if (currentUser.role === "staff") {
@@ -98,11 +107,13 @@ export function usePermissions() {
     isOwner: role === "owner",
     isAdmin: role === "admin",
     isStaff: role === "staff",
+    isSuperuser: role === "superuser",
     canManageServices: canManageServices(role),
     canManageTherapists: canManageTherapists(role),
     canManageStaff: canManageStaff(role),
     canDelete: canDelete(role),
     canSeeRevenue: canSeeRevenue(role),
+    canManagePlatform: canManagePlatform(role),
     canEditAccount: (targetUser: { role: Role; id: number }) => canEditAccount(user, targetUser),
   };
 }

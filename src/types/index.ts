@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "staff";
+export type Role = "owner" | "admin" | "staff" | "superuser";
 
 export interface Spa {
   id: number;

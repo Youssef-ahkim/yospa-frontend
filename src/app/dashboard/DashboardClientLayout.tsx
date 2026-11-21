@@ -230,9 +230,11 @@ export default function DashboardClientLayout({
     if (!isLoading && !user) {
       if (typeof window !== "undefined" && window.location.pathname !== "/login") {
         const currentPath = window.location.pathname + window.location.search;
-        const safeNext = getSafeRedirectPath(currentPath);
+        const safeNext = getSafeRedirectPath(currentPath, null);
         router.replace(`/login?next=${encodeURIComponent(safeNext)}`);
       }
+    } else if (!isLoading && user?.role === "superuser") {
+      router.replace("/platform");
     }
   }, [user, isLoading, router]);
 

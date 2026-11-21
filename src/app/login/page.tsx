@@ -56,8 +56,10 @@ function LoginFormContent() {
     if (isExpired) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Check query param for session expiry on mount
       setSessionExpired(true);
-      const safeNext = getSafeRedirectPath(nextParam);
-      const nextQuery = nextParam && safeNext !== "/dashboard" ? `?next=${encodeURIComponent(safeNext)}` : "";
+      const isPlatform = nextParam?.startsWith("/platform");
+      const safeNext = getSafeRedirectPath(nextParam, isPlatform ? "superuser" : null);
+      const isDefault = safeNext === "/dashboard" || safeNext === "/platform";
+      const nextQuery = nextParam && !isDefault ? `?next=${encodeURIComponent(safeNext)}` : "";
       router.replace(`/login${nextQuery}`, { scroll: false });
     }
   }, [isExpired, nextParam, router]);
@@ -74,7 +76,7 @@ function LoginFormContent() {
   // Wait for auth to finish loading before redirecting an already signed-in user
   useEffect(() => {
     if (!isAuthLoading && user) {
-      const destination = getSafeRedirectPath(nextParam);
+      const destination = getSafeRedirectPath(nextParam, user.role);
       router.replace(destination);
     }
   }, [user, isAuthLoading, nextParam, router]);
