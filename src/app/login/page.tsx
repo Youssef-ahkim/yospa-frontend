@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, User } from "@/context/AuthContext";
-import { apiFetch, getSafeRedirectPath } from "@/lib/api";
+import { apiFetch, ApiError, getSafeRedirectPath } from "@/lib/api";
 import { Spinner } from "@/components/ui/Spinner";
 import { Sparkles, Eye, EyeOff, AlertCircle } from "lucide-react";
 
@@ -40,6 +40,8 @@ function LoginFormContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [accountDeactivated, setAccountDeactivated] = useState(false);
+  const [countdown, setCountdown] = useState<number>(0);
+  const [rateLimitMsg, setRateLimitMsg] = useState<string>("");
 
   const { login, user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
@@ -77,8 +79,30 @@ function LoginFormContent() {
     }
   }, [user, isAuthLoading, nextParam, router]);
 
+  // Live countdown timer for 429 rate limit
+  useEffect(() => {
+    if (countdown <= 0) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setError(null);
+          setRateLimitMsg("");
+          return 0;
+        }
+        const next = prev - 1;
+        setError(`${rateLimitMsg} Try again in ${next} second${next === 1 ? "" : "s"}.`);
+        return next;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdown, rateLimitMsg]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (countdown > 0) return;
     setError(null);
     setIsLoading(true);
 
@@ -92,7 +116,15 @@ function LoginFormContent() {
       // Single redirect handled by login()
       login(data.token, data.user, destination);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
+      if (err instanceof ApiError && err.status === 429) {
+        const seconds = err.retryAfter && err.retryAfter > 0 ? err.retryAfter : 60;
+        const msg = err.message || "Too many login attempts. Please try again later.";
+        setCountdown(seconds);
+        setRateLimitMsg(msg);
+        setError(`${msg} Try again in ${seconds} second${seconds === 1 ? "" : "s"}.`);
+      } else {
+        setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -265,7 +297,7 @@ function LoginFormContent() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || countdown > 0}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
             >
               {isLoading ? (
@@ -273,6 +305,8 @@ function LoginFormContent() {
                   <Spinner className="w-4 h-4" />
                   Signing in...
                 </>
+              ) : countdown > 0 ? (
+                `Try again in ${countdown}s`
               ) : (
                 "Sign in to Yospa"
               )}

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, getSafeRedirectPath, setOnUnauthorizedHandler, setOnDeactivatedHandler } from '@/lib/api';
+import { apiFetch, ApiError, getSafeRedirectPath, setOnUnauthorizedHandler, setOnDeactivatedHandler } from '@/lib/api';
 import { Role, User, Spa } from '@/types';
 export type { Role, User, Spa };
 
@@ -69,7 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((userData) => {
           setUser(userData);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          if (err instanceof ApiError && err.status === 429) {
+            return;
+          }
           localStorage.removeItem('yospa_token');
           setToken(null);
           setUser(null);

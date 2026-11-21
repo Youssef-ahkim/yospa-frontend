@@ -1,6 +1,7 @@
 "use client";
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { setOnRateLimitHandler } from "@/lib/api";
 
 type ToastVariant = "success" | "error" | "info";
 
@@ -30,17 +31,34 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const add = useCallback((message: string, variant: ToastVariant) => {
-    const id = ++nextId;
-    setToasts((prev) => [...prev.slice(-3), { id, message, variant }]); // max 4 visible
-    const duration = variant === "error" ? 6000 : 4000;
-    setTimeout(() => dismiss(id), duration);
+    setToasts((prev) => {
+      if (prev.some((t) => t.message === message)) {
+        return prev;
+      }
+      const id = ++nextId;
+      const duration = variant === "error" ? 6000 : 4000;
+      setTimeout(() => dismiss(id), duration);
+      return [...prev.slice(-3), { id, message, variant }];
+    });
   }, [dismiss]);
 
-  const toast = {
-    success: (msg: string) => add(msg, "success"),
-    error: (msg: string) => add(msg, "error"),
-    info: (msg: string) => add(msg, "info"),
-  };
+  const toast = useMemo(
+    () => ({
+      success: (msg: string) => add(msg, "success"),
+      error: (msg: string) => add(msg, "error"),
+      info: (msg: string) => add(msg, "info"),
+    }),
+    [add]
+  );
+
+  useEffect(() => {
+    setOnRateLimitHandler((message: string) => {
+      toast.error(message || "Too many requests, please slow down");
+    });
+    return () => {
+      setOnRateLimitHandler(null);
+    };
+  }, [toast]);
 
   const icons: Record<ToastVariant, React.ReactNode> = {
     success: <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />,

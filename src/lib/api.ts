@@ -4,13 +4,21 @@ export class ApiError extends Error {
   status: number;
   errors?: Record<string, string[]>;
   data?: unknown;
+  retryAfter?: number;
 
-  constructor(message: string, status: number, errors?: Record<string, string[]>, data?: unknown) {
+  constructor(
+    message: string,
+    status: number,
+    errors?: Record<string, string[]>,
+    data?: unknown,
+    retryAfter?: number
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
     this.data = data;
+    this.retryAfter = retryAfter;
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
@@ -51,6 +59,13 @@ let onDeactivatedHandler: DeactivatedHandler | null = null;
 
 export function setOnDeactivatedHandler(handler: DeactivatedHandler | null) {
   onDeactivatedHandler = handler;
+}
+
+type RateLimitHandler = (message: string, retryAfter?: number) => void;
+let onRateLimitHandler: RateLimitHandler | null = null;
+
+export function setOnRateLimitHandler(handler: RateLimitHandler | null) {
+  onRateLimitHandler = handler;
 }
 
 interface FetchOptions extends RequestInit {
@@ -127,6 +142,27 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
       }
     }
     throw new ApiError('Your account has been deactivated.', 403, data?.errors, data);
+  }
+
+  // Handle 429 Too Many Requests (Rate Limiting).
+  // A 429 must NOT evict the session and must NOT redirect.
+  if (response.status === 429) {
+    const retryAfterHeader = response.headers.get('Retry-After');
+    let retryAfter: number | undefined;
+    if (retryAfterHeader) {
+      const parsed = parseInt(retryAfterHeader, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        retryAfter = parsed;
+      }
+    }
+
+    const message = data?.message || 'Too many requests, please slow down';
+
+    if (endpoint !== '/login' && onRateLimitHandler) {
+      onRateLimitHandler(message, retryAfter);
+    }
+
+    throw new ApiError(message, 429, data?.errors, data, retryAfter);
   }
 
   if (!response.ok) {
