@@ -300,6 +300,7 @@ export default function ReservationsPage() {
       ) : activeView === "calendar" ? (
         <CalendarView
           reservations={reservations}
+          therapists={therapists}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
           onSlotClick={(timeStr) => openCreateModal(timeStr)}

@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   Reservation, 
   ReservationStatus, 
-  RESERVATION_STATUSES 
+  RESERVATION_STATUSES,
+  Therapist
 } from "@/types";
 import { 
   START_HOUR, 
@@ -37,6 +38,7 @@ import {
 
 interface CalendarViewProps {
   reservations: Reservation[];
+  therapists?: Therapist[];
   searchQuery: string;
   statusFilter: "all" | ReservationStatus;
   onSlotClick: (initialStartTime: string) => void;
@@ -51,6 +53,7 @@ type ViewMode = "day" | "week";
 
 export function CalendarView({
   reservations,
+  therapists = [],
   searchQuery,
   statusFilter,
   onSlotClick,
@@ -63,8 +66,34 @@ export function CalendarView({
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [showCancelled, setShowCancelled] = useState<boolean>(false);
+  const [therapistFilter, setTherapistFilter] = useState<string>("all");
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
+
+  // Aggregate therapists from props + any inactive therapists appearing on loaded reservations
+  const filterTherapistsList = useMemo(() => {
+    const map = new Map<number, { id: number; name: string; color: string }>();
+
+    // Add active therapists from props
+    (therapists || []).forEach((t) => {
+      map.set(t.id, { id: t.id, name: t.name, color: t.color });
+    });
+
+    // Add any therapists on loaded reservations (e.g. inactive)
+    reservations.forEach((r) => {
+      if (r.therapist && !map.has(r.therapist.id)) {
+        map.set(r.therapist.id, {
+          id: r.therapist.id,
+          name: `${r.therapist.name} (inactive)`,
+          color: r.therapist.color || "#7455A4",
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
+  }, [therapists, reservations]);
 
   // Default to day view on small mobile screens (< 768px)
   useEffect(() => {
@@ -109,7 +138,20 @@ export function CalendarView({
         return false;
       }
 
-      // 3. Search Query
+      // 3. Therapist Filter
+      if (therapistFilter === "unassigned") {
+        if (res.therapist != null || res.therapist_id != null) {
+          return false;
+        }
+      } else if (therapistFilter !== "all") {
+        const targetId = Number(therapistFilter);
+        const rTherapistId = res.therapist_id ?? res.therapist?.id;
+        if (rTherapistId == null || Number(rTherapistId) !== targetId) {
+          return false;
+        }
+      }
+
+      // 4. Search Query
       if (q) {
         const matchClient = res.client?.full_name?.toLowerCase().includes(q);
         const matchEmail = res.client?.email?.toLowerCase().includes(q);
@@ -122,7 +164,7 @@ export function CalendarView({
 
       return true;
     });
-  }, [reservations, searchQuery, statusFilter, effectiveShowCancelled]);
+  }, [reservations, searchQuery, statusFilter, effectiveShowCancelled, therapistFilter]);
 
   // Days in view
   const daysInView = useMemo(() => {
@@ -221,7 +263,26 @@ export function CalendarView({
         </div>
 
         {/* View Mode & Toggles */}
-        <div className="flex items-center gap-3 self-end md:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-end md:self-auto">
+          {/* Therapist Filter Select */}
+          <div className="inline-flex items-center">
+            <select
+              value={therapistFilter}
+              onChange={(e) => setTherapistFilter(e.target.value)}
+              className="px-2.5 py-1 text-xs font-semibold rounded-xl border border-[#EAE4F2] bg-[#FAF8FC] text-[#33283D] hover:bg-white focus:outline-none focus:ring-1 focus:ring-[#7455A4] cursor-pointer max-w-[130px] sm:max-w-[170px] truncate"
+              title="Filter appointments by assigned therapist"
+              aria-label="Filter appointments by assigned therapist"
+            >
+              <option value="all">All Therapists</option>
+              <option value="unassigned">Unassigned</option>
+              {filterTherapistsList.map((t) => (
+                <option key={t.id} value={String(t.id)}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Show Cancelled Toggle */}
           <label className="inline-flex items-center gap-1.5 text-xs text-[#7A6F86] hover:text-[#33283D] cursor-pointer select-none">
             <input

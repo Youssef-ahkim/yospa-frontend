@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency } from "@/lib/currency";
 import { apiFetch, ApiError } from "@/lib/api";
+import { checkReservationOverlap } from "@/lib/overlap";
 import { useToast } from "@/context/ToastContext";
 import { Calendar, Edit3, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -136,43 +137,36 @@ export function ReservationForm({
     return clients;
   }, [clients, initial]);
 
-  // Non-blocking overlap conflict detection
-  const overlapConflict = useMemo(() => {
-    if (!existingReservations.length || !formData.start_time || !formData.end_time) {
-      return null;
-    }
-    const currentStart = new Date(formData.start_time.replace(" ", "T")).getTime();
-    const currentEnd = new Date(formData.end_time.replace(" ", "T")).getTime();
-
-    if (isNaN(currentStart) || isNaN(currentEnd) || currentStart >= currentEnd) {
-      return null;
-    }
-
-    return (
-      existingReservations.find((r) => {
-        // Exclude the reservation currently being edited
-        if (initial && r.id === initial.id) {
-          return false;
-        }
-        // Exclude cancelled reservations
-        if (r.status === "cancelled") {
-          return false;
-        }
-        const rStart = new Date(r.start_time.replace(" ", "T")).getTime();
-        const rEnd = new Date(r.end_time.replace(" ", "T")).getTime();
-        if (isNaN(rStart) || isNaN(rEnd)) {
-          return false;
-        }
-        return currentStart < rEnd && currentEnd > rStart;
-      }) || null
-    );
-  }, [existingReservations, formData.start_time, formData.end_time, initial]);
+  // Non-blocking overlap conflict detection (generic + same-therapist)
+  const overlapCheck = useMemo(() => {
+    return checkReservationOverlap({
+      startTime: formData.start_time,
+      endTime: formData.end_time,
+      excludeReservationId: initial?.id,
+      targetTherapistId: formData.therapist_id ? Number(formData.therapist_id) : null,
+      reservations: existingReservations,
+    });
+  }, [existingReservations, formData.start_time, formData.end_time, formData.therapist_id, initial?.id]);
 
   const formatConflictTime = (startStr: string, endStr: string) => {
     const s = new Date(startStr.replace(" ", "T"));
     const e = new Date(endStr.replace(" ", "T"));
     const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
     return `${s.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${s.toLocaleTimeString([], timeOpts)} - ${e.toLocaleTimeString([], timeOpts)}`;
+  };
+
+  const formatTimeOnly = (dtStr: string) => {
+    const d = new Date(dtStr.replace(" ", "T"));
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatDateIfDifferent = (resTime: string, formTime: string) => {
+    const r = new Date(resTime.replace(" ", "T"));
+    const f = new Date(formTime.replace(" ", "T"));
+    if (r.toDateString() !== f.toDateString()) {
+      return ` on ${r.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    }
+    return "";
   };
 
   // Sync form state when opened or when initial changes
@@ -500,8 +494,34 @@ export function ReservationForm({
           </FormField>
         </div>
 
-        {/* Non-blocking Overlap Warning */}
-        {overlapConflict && (
+        {/* Stronger Same-Therapist Double-Booking Warning */}
+        {overlapCheck.therapistConflict && (
+          <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 animate-in fade-in duration-150">
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-bold text-rose-950">
+                Therapist Double-Booking Warning
+              </p>
+              <p>
+                <strong className="font-bold text-rose-950">
+                  {overlapCheck.therapistConflict.therapist?.name || availableTherapists.find((t) => String(t.id) === formData.therapist_id)?.name || "This therapist"}
+                </strong>{" "}
+                is already booked with{" "}
+                <strong className="font-semibold text-rose-950">
+                  {overlapCheck.therapistConflict.client?.full_name || "another client"}
+                </strong>{" "}
+                from {formatTimeOnly(overlapCheck.therapistConflict.start_time)} to {formatTimeOnly(overlapCheck.therapistConflict.end_time)}
+                {formatDateIfDifferent(overlapCheck.therapistConflict.start_time, formData.start_time)}.
+              </p>
+              <p className="text-rose-800/80 text-[11px]">
+                You can still save this reservation if this double-booking is intentional.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Existing Generic Overlap Warning (shown when not already showing same-therapist conflict) */}
+        {overlapCheck.genericConflict && !overlapCheck.therapistConflict && (
           <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 animate-in fade-in duration-150">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-0.5">
@@ -511,9 +531,9 @@ export function ReservationForm({
               <p>
                 Conflicts with{" "}
                 <strong className="font-semibold text-amber-950">
-                  {overlapConflict.client?.full_name || "another client"}
+                  {overlapCheck.genericConflict.client?.full_name || "another client"}
                 </strong>{" "}
-                ({formatConflictTime(overlapConflict.start_time, overlapConflict.end_time)}).
+                ({formatConflictTime(overlapCheck.genericConflict.start_time, overlapCheck.genericConflict.end_time)}).
               </p>
               <p className="text-amber-800/80 text-[11px]">
                 You can still save this reservation if this double-booking is intentional.
