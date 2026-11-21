@@ -54,13 +54,22 @@ export function getSafeRedirectPath(
     return defaultHome;
   }
   // Role checks:
-  // /platform... is allowed only for superuser
-  if (trimmed === '/platform' || trimmed.startsWith('/platform/')) {
-    return role === 'superuser' ? trimmed : defaultHome;
+  // If role is explicitly provided, enforce strict role boundaries:
+  if (role !== undefined) {
+    if (role === 'superuser') {
+      return (trimmed === '/platform' || trimmed.startsWith('/platform/')) ? trimmed : defaultHome;
+    }
+    // Tenant users (owner, admin, staff, or null non-superuser):
+    return (trimmed === '/dashboard' || trimmed.startsWith('/dashboard/')) ? trimmed : defaultHome;
   }
-  // /dashboard... is allowed only for non-superusers
-  if (trimmed === '/dashboard' || trimmed.startsWith('/dashboard/')) {
-    return role !== 'superuser' ? trimmed : defaultHome;
+  // If role is omitted (e.g. unauthenticated 401 redirect), keep any safe dashboard or platform path:
+  if (
+    trimmed === '/dashboard' ||
+    trimmed.startsWith('/dashboard/') ||
+    trimmed === '/platform' ||
+    trimmed.startsWith('/platform/')
+  ) {
+    return trimmed;
   }
   return defaultHome;
 }

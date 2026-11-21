@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError, getSafeRedirectPath, setOnUnauthorizedHandler, setOnDeactivatedHandler } from '@/lib/api';
 import { Role, User, Spa } from '@/types';
@@ -22,13 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  const userRef = useRef<User | null>(user);
-  userRef.current = user;
-
   // Handler for 401s notified by apiFetch.
   // AuthContext is the single owner of clearing state and redirecting once.
   const handleUnauthorized = useCallback((currentPath?: string) => {
-    const role = userRef.current?.role;
     localStorage.removeItem('yospa_token');
     setToken(null);
     setUser(null);
@@ -36,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
       const rawPath = currentPath || (window.location.pathname + window.location.search);
-      const safeNext = getSafeRedirectPath(rawPath, role);
+      const safeNext = getSafeRedirectPath(rawPath);
       router.replace(`/login?expired=1&next=${encodeURIComponent(safeNext)}`);
     }
   }, [router]);
@@ -97,13 +93,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newToken = e.newValue;
       if (!newToken) {
         // Token was removed in another tab -> clear state and redirect to /login once
-        const role = userRef.current?.role;
         setToken(null);
         setUser(null);
         setIsLoading(false);
         if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           const currentPath = window.location.pathname + window.location.search;
-          const safeNext = getSafeRedirectPath(currentPath, role);
+          const safeNext = getSafeRedirectPath(currentPath);
           router.replace(`/login?next=${encodeURIComponent(safeNext)}`);
         }
       } else if (newToken !== token) {

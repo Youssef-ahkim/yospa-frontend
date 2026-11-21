@@ -122,3 +122,72 @@ export interface ApiResponse<T> {
   message?: string;
   data?: T;
 }
+
+export interface PlatformStats {
+  spas: {
+    total: number;
+    active: number;
+    suspended: number;
+  };
+  users: number;
+  clients: number;
+  reservations: number;
+}
+
+export interface PlatformSpa {
+  id: number;
+  name: string;
+  slug: string;
+  status: "active" | "suspended";
+  owner_emails: string[];
+  counts: {
+    users: number;
+    clients: number;
+    services: number;
+    therapists: number;
+    reservations: number;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PlatformUser {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  is_active: boolean;
+}
+
+export interface PlatformSpaDetail {
+  spa: {
+    id: number;
+    name: string;
+    slug: string;
+    status: "active" | "suspended";
+    created_at?: string;
+    updated_at?: string;
+  };
+  counts: {
+    users: number;
+    clients: number;
+    services: number;
+    therapists: number;
+    reservations: number;
+  };
+  users: PlatformUser[];
+}
+
+export interface PlatformAuditLog {
+  id: number;
+  actor_user_id: number | null;
+  action: string;
+  subject_type: string;
+  subject_id: number | null;
+  spa_id: number | null;
+  meta?: Record<string, unknown> | null;
+  ip?: string | null;
+  created_at?: string;
+  actor?: { id: number; name: string; email: string } | null;
+  spa?: { id: number; name: string; slug: string } | null;
+}

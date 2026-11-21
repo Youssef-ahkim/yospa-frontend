@@ -17,14 +17,22 @@ function getSafeRedirectPath(path, role) {
   if (trimmed === '/login' || trimmed.startsWith('/login?') || trimmed.startsWith('/login/')) {
     return defaultHome;
   }
-  // Role checks:
-  // /platform... is allowed only for superuser
-  if (trimmed === '/platform' || trimmed.startsWith('/platform/')) {
-    return role === 'superuser' ? trimmed : defaultHome;
+  // If role is explicitly provided, enforce strict role boundaries:
+  if (role !== undefined) {
+    if (role === 'superuser') {
+      return (trimmed === '/platform' || trimmed.startsWith('/platform/')) ? trimmed : defaultHome;
+    }
+    // Tenant users (owner, admin, staff, or null non-superuser):
+    return (trimmed === '/dashboard' || trimmed.startsWith('/dashboard/')) ? trimmed : defaultHome;
   }
-  // /dashboard... is allowed only for non-superusers
-  if (trimmed === '/dashboard' || trimmed.startsWith('/dashboard/')) {
-    return role !== 'superuser' ? trimmed : defaultHome;
+  // If role is omitted (e.g. unauthenticated 401 redirect), keep any safe dashboard or platform path:
+  if (
+    trimmed === '/dashboard' ||
+    trimmed.startsWith('/dashboard/') ||
+    trimmed === '/platform' ||
+    trimmed.startsWith('/platform/')
+  ) {
+    return trimmed;
   }
   return defaultHome;
 }
@@ -121,6 +129,25 @@ const testCases = [
     name: '/login?next=/dashboard loop prevention',
     path: '/login?next=/dashboard',
     role: 'owner',
+    expected: '/dashboard',
+  },
+  // 10. Unauthenticated 401 redirect keeps plain valid path
+  {
+    name: '401 on /platform/spas without role keeps path',
+    path: '/platform/spas',
+    role: undefined,
+    expected: '/platform/spas',
+  },
+  {
+    name: '401 on /dashboard/clients without role keeps path',
+    path: '/dashboard/clients',
+    role: undefined,
+    expected: '/dashboard/clients',
+  },
+  {
+    name: '401 with evil url without role returns /dashboard',
+    path: '//evil.com',
+    role: undefined,
     expected: '/dashboard',
   },
 ];
