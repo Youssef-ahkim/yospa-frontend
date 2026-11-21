@@ -173,7 +173,7 @@ function BottomTabBar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-semibold tracking-tight transition-colors ${
+              className={`flex-1 min-w-0 min-h-[48px] flex flex-col items-center justify-center gap-1 py-1 px-1 text-[10px] font-semibold tracking-tight transition-colors ${
                 isActive ? "text-[#7455A4]" : "text-[#7A6F86] hover:text-[#33283D]"
               }`}
             >
@@ -197,7 +197,7 @@ function BottomTabBar() {
           aria-expanded={moreOpen}
           aria-label="More navigation options"
           onClick={() => setMoreOpen((prev) => !prev)}
-          className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-semibold tracking-tight transition-colors cursor-pointer ${
+          className={`flex-1 min-w-0 min-h-[48px] flex flex-col items-center justify-center gap-1 py-1 px-1 text-[10px] font-semibold tracking-tight transition-colors cursor-pointer ${
             isMoreActive || moreOpen
               ? "text-[#7455A4]"
               : "text-[#7A6F86] hover:text-[#33283D]"
@@ -376,6 +376,7 @@ export default function DashboardClientLayout({
               <button
                 onClick={closeDrawer}
                 className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#F0EAF7] transition-colors cursor-pointer"
+                aria-label="Close navigation menu"
               >
                 <X className="w-4 h-4" />
               </button>

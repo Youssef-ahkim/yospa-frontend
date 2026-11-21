@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Client } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/lib/permissions";
 import { useToast } from "@/context/ToastContext";
 import { SlideOver } from "@/components/ui/SlideOver";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField } from "@/components/ui/FormField";
 import { Spinner } from "@/components/ui/Spinner";
 import {
@@ -18,10 +21,12 @@ import {
   Users,
   AlertCircle,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 export default function ClientsPage() {
   const toast = useToast();
+  const { canDelete } = usePermissions();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +41,9 @@ export default function ClientsPage() {
     phone: "",
     notes: "",
   });
+
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchClients = async () => {
     try {
@@ -93,6 +101,29 @@ export default function ClientsPage() {
     }
   };
 
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+    const id = clientToDelete.id;
+    setDeletingId(id);
+    try {
+      await apiFetch<{ message: string }>(`/clients/${id}`, {
+        method: "DELETE",
+      });
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Client deleted successfully.");
+      setClientToDelete(null);
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      const humanMessage =
+        apiErr?.status === 409 || apiErr?.status === 400
+          ? "This client cannot be deleted because they have active appointments or dependencies."
+          : (err as Error)?.message || "Unable to delete client. Please try again or contact support.";
+      toast.error(humanMessage);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const filteredClients = clients.filter((client) => {
     const clientName = client.full_name || "";
     const clientEmail = client.email || "";
@@ -124,7 +155,7 @@ export default function ClientsPage() {
         </div>
         <button
           onClick={openModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7455A4] hover:bg-[#5E4387] text-white font-semibold text-sm rounded-xl shadow-xs transition-all duration-200 cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[40px] bg-[#7455A4] hover:bg-[#5E4387] text-white font-semibold text-sm rounded-xl shadow-xs transition-all duration-200 cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           Add Client
@@ -139,12 +170,13 @@ export default function ClientsPage() {
           placeholder="Search by name, email, or phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] text-sm bg-white shadow-xs hover:border-[#C9B8E2] text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
+          className="w-full pl-10 pr-10 py-2.5 border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] text-sm bg-white shadow-xs hover:border-[#C9B8E2] text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer rounded-lg hover:bg-[#FAF8FC]"
+            aria-label="Clear search"
           >
             <X className="w-4 h-4" />
           </button>
@@ -186,72 +218,179 @@ export default function ClientsPage() {
         </div>
       ) : (
         <div className="bg-white border border-[#EAE4F2] rounded-2xl overflow-hidden shadow-xs">
-          <table className="min-w-full divide-y divide-[#EAE4F2]">
-            <thead className="bg-[#FAF8FC]">
-              <tr>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
-                  Client
-                </th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider hidden sm:table-cell">
-                  Joined
-                </th>
-                <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#FAF8FC] bg-white">
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-[#FAF8FC] transition-colors group">
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#F0EAF7] border border-[#C9B8E2]/50 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-[#7455A4]">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-[#EAE4F2]">
+              <thead className="bg-[#FAF8FC]">
+                <tr>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
+                    Joined
+                  </th>
+                  <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#7A6F86] uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#FAF8FC] bg-white">
+                {filteredClients.map((client) => {
+                  const isDeletingThis = deletingId === client.id;
+                  return (
+                    <tr key={client.id} className="hover:bg-[#FAF8FC] transition-colors group">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-[#F0EAF7] border border-[#C9B8E2]/50 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-[#7455A4]">
+                              {(client.full_name || "?")[0].toUpperCase()}
+                            </span>
+                          </div>
+                          <span className="text-sm font-semibold text-[#33283D] group-hover:text-[#7455A4] transition-colors">
+                            {client.full_name}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5 text-sm text-[#7A6F86]">
+                          {client.email ? (
+                            <span className="flex items-center gap-1.5 text-xs">
+                              <Mail className="w-3 h-3 text-[#9275BC]" />
+                              {client.email}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[#7A6F86]/60 italic">No email</span>
+                          )}
+                          {client.phone && (
+                            <span className="flex items-center gap-1.5 text-xs text-[#7A6F86]">
+                              <Phone className="w-3 h-3 text-[#9275BC]" />
+                              {client.phone}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-xs text-[#7A6F86]">
+                        {client.created_at ? new Date(client.created_at).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                        <div className="inline-flex items-center justify-end gap-2">
+                          <Link
+                            href={`/dashboard/clients/${client.id}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7455A4] hover:text-[#5E4387] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            View
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              disabled={isDeletingThis}
+                              onClick={() => setClientToDelete(client)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50 border border-red-100"
+                              aria-label={`Delete ${client.full_name}`}
+                            >
+                              {isDeletingThis ? (
+                                <Spinner className="w-3.5 h-3.5" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View (360px-friendly, with >=40px touch targets) */}
+          <div className="md:hidden divide-y divide-[#EAE4F2]">
+            {filteredClients.map((client) => {
+              const isDeletingThis = deletingId === client.id;
+              return (
+                <div key={client.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href={`/dashboard/clients/${client.id}`}
+                      className="flex items-center gap-3 min-w-0"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-[#F0EAF7] border border-[#C9B8E2]/50 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-bold text-[#7455A4]">
                           {(client.full_name || "?")[0].toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-sm font-semibold text-[#33283D] group-hover:text-[#7455A4] transition-colors">
-                        {client.full_name}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#33283D] truncate hover:text-[#7455A4] transition-colors">
+                          {client.full_name}
+                        </p>
+                        <p className="text-xs text-[#7A6F86]">
+                          Joined {client.created_at ? new Date(client.created_at).toLocaleDateString() : "—"}
+                        </p>
+                      </div>
                     </Link>
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <div className="flex flex-col gap-0.5 text-sm text-[#7A6F86]">
-                      {client.email ? (
-                        <span className="flex items-center gap-1.5 text-xs">
-                          <Mail className="w-3 h-3 text-[#9275BC]" />
-                          {client.email}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-[#7A6F86]/60 italic">No email</span>
-                      )}
-                      {client.phone && (
-                        <span className="flex items-center gap-1.5 text-xs text-[#7A6F86]">
-                          <Phone className="w-3 h-3 text-[#9275BC]" />
-                          {client.phone}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-xs text-[#7A6F86] hidden sm:table-cell">
-                    {client.created_at ? new Date(client.created_at).toLocaleDateString() : "—"}
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                  </div>
+
+                  {/* Contact Details */}
+                  <div className="space-y-1.5 text-xs text-[#7A6F86] bg-[#FAF8FC] p-2.5 rounded-xl border border-[#EAE4F2]">
+                    {client.phone && (
+                      <a
+                        href={`tel:${client.phone}`}
+                        className="flex items-center gap-2 hover:text-[#7455A4] transition-colors"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-[#9275BC] flex-shrink-0" />
+                        <span>{client.phone}</span>
+                      </a>
+                    )}
+                    {client.email ? (
+                      <a
+                        href={`mailto:${client.email}`}
+                        className="flex items-center gap-2 hover:text-[#7455A4] transition-colors truncate"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-[#9275BC] flex-shrink-0" />
+                        <span className="truncate">{client.email}</span>
+                      </a>
+                    ) : (
+                      <p className="italic text-[#7A6F86]/60">No email registered</p>
+                    )}
+                  </div>
+
+                  {/* Actions with >= 40px touch targets */}
+                  <div className="flex items-center gap-2 pt-1">
                     <Link
                       href={`/dashboard/clients/${client.id}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7455A4] hover:text-[#5E4387] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-3 py-1.5 rounded-lg transition-colors"
+                      className="flex-1 min-h-[40px] inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] px-4 py-2 rounded-xl transition-colors cursor-pointer"
                     >
-                      View
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      View Details
+                      <ChevronRight className="w-4 h-4" />
                     </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        disabled={isDeletingThis}
+                        onClick={() => setClientToDelete(client)}
+                        className="min-h-[40px] px-4 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50 border border-red-100"
+                        aria-label={`Delete ${client.full_name}`}
+                      >
+                        {isDeletingThis ? (
+                          <Spinner className="w-4 h-4" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <div className="px-5 py-3 border-t border-[#EAE4F2] bg-[#FAF8FC] flex items-center justify-between">
             <p className="text-xs text-[#7A6F86]">
               Showing <span className="font-semibold text-[#33283D]">{filteredClients.length}</span> of{" "}
@@ -260,6 +399,18 @@ export default function ClientsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Client Confirm Dialog */}
+      <ConfirmDialog
+        open={!!clientToDelete}
+        onClose={() => setClientToDelete(null)}
+        onConfirm={handleDeleteClient}
+        title={`Delete Client "${clientToDelete?.full_name}"?`}
+        description="Are you sure you want to delete this client? This will permanently remove their profile and associated appointment data."
+        confirmLabel="Delete Client"
+        confirmLoadingLabel="Deleting..."
+        isConfirming={deletingId !== null}
+      />
 
       {/* Add Client Slide-Over */}
       <SlideOver

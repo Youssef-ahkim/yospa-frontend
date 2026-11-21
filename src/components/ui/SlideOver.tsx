@@ -98,7 +98,7 @@ export function SlideOver({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC] cursor-pointer transition-colors"
-            aria-label="Close"
+            aria-label="Close panel"
           >
             <X className="w-4 h-4" />
           </button>

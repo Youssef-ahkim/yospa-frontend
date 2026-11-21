@@ -131,6 +131,7 @@ export function EventDetailPanel({
               onClick={onClose}
               className="p-1.5 rounded-lg text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC] transition-colors cursor-pointer"
               title="Close"
+              aria-label="Close panel"
             >
               <X className="w-5 h-5" />
             </button>

@@ -222,7 +222,7 @@ export function ClientReservationHistory({
                           <button
                             type="button"
                             onClick={() => onStatusChange(res, "confirmed")}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-xl border border-[#C9B8E2] transition-colors cursor-pointer"
+                            className="flex-1 min-h-[40px] flex items-center justify-center gap-1 py-2 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-xl border border-[#C9B8E2] transition-colors cursor-pointer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Confirm
                           </button>
@@ -231,7 +231,7 @@ export function ClientReservationHistory({
                           <button
                             type="button"
                             onClick={() => onStatusChange(res, "completed")}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-xl border border-[#91A68D]/30 transition-colors cursor-pointer"
+                            className="flex-1 min-h-[40px] flex items-center justify-center gap-1 py-2 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-xl border border-[#91A68D]/30 transition-colors cursor-pointer"
                           >
                             <CheckCheck className="w-3.5 h-3.5" /> Complete
                           </button>
@@ -240,7 +240,7 @@ export function ClientReservationHistory({
                           <button
                             type="button"
                             onClick={() => onStatusChange(res, "cancelled")}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 rounded-xl border border-[#FECDD3] transition-colors cursor-pointer"
+                            className="flex-1 min-h-[40px] flex items-center justify-center gap-1 py-2 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 rounded-xl border border-[#FECDD3] transition-colors cursor-pointer"
                           >
                             <XCircle className="w-3.5 h-3.5" /> Cancel
                           </button>

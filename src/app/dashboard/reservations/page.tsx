@@ -329,6 +329,7 @@ export default function ReservationsPage() {
                   <button
                     onClick={() => setSearchQuery("")}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] cursor-pointer"
+                    aria-label="Clear search"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>

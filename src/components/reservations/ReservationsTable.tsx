@@ -345,20 +345,20 @@ export function ReservationsTable({
 
               {/* Mobile Actions */}
               {isRowUpdating ? (
-                <div className="flex items-center justify-center gap-1.5 text-xs text-[#7A6F86] pt-1 border-t border-[#FAF8FC]">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#7A6F86] py-2 border-t border-[#FAF8FC]">
                   <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />
                   <span>Updating...</span>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#FAF8FC]">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#FAF8FC]">
                   {(res.status === "pending" || res.status === "confirmed") && (
                     <button
                       type="button"
                       disabled={isRowUpdating}
                       onClick={() => onEditClick(res)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#33283D] bg-white hover:bg-[#FAF8FC] rounded-lg transition-colors cursor-pointer border border-[#EAE4F2] shadow-2xs"
+                      className="min-h-[40px] inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[#33283D] bg-white hover:bg-[#FAF8FC] rounded-xl transition-colors cursor-pointer border border-[#EAE4F2] shadow-2xs"
                     >
-                      <Edit3 className="w-3 h-3 text-[#7455A4]" />
+                      <Edit3 className="w-3.5 h-3.5 text-[#7455A4]" />
                       Edit
                     </button>
                   )}
@@ -368,9 +368,9 @@ export function ReservationsTable({
                       type="button"
                       disabled={isRowUpdating}
                       onClick={() => onStatusChange(res, "confirmed")}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-lg transition-colors cursor-pointer border border-[#C9B8E2]"
+                      className="min-h-[40px] inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-xl transition-colors cursor-pointer border border-[#C9B8E2]"
                     >
-                      <CheckCircle2 className="w-3 h-3" />
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                       Confirm
                     </button>
                   )}
@@ -380,9 +380,9 @@ export function ReservationsTable({
                       type="button"
                       disabled={isRowUpdating}
                       onClick={() => onStatusChange(res, "completed")}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-lg transition-colors cursor-pointer border border-[#91A68D]/30"
+                      className="min-h-[40px] inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-xl transition-colors cursor-pointer border border-[#91A68D]/30"
                     >
-                      <CheckCheck className="w-3 h-3" />
+                      <CheckCheck className="w-3.5 h-3.5" />
                       Complete
                     </button>
                   )}
@@ -392,9 +392,9 @@ export function ReservationsTable({
                       type="button"
                       disabled={isRowUpdating}
                       onClick={() => onStatusChange(res, "cancelled")}
-                      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 rounded-lg transition-colors cursor-pointer border border-[#FECDD3]"
+                      className="min-h-[40px] inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] hover:bg-rose-100 rounded-xl transition-colors cursor-pointer border border-[#FECDD3]"
                     >
-                      <XCircle className="w-3 h-3" />
+                      <XCircle className="w-3.5 h-3.5" />
                       Cancel
                     </button>
                   )}
@@ -404,9 +404,9 @@ export function ReservationsTable({
                       type="button"
                       disabled={isRowUpdating}
                       onClick={() => onDeleteClick(res)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#BE123C] bg-white hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-[#FECDD3] shadow-2xs disabled:opacity-50 ml-auto"
+                      className="min-h-[40px] inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[#BE123C] bg-white hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-[#FECDD3] shadow-2xs disabled:opacity-50 ml-auto"
                     >
-                      <Trash2 className="w-3 h-3 text-[#BE123C]" />
+                      <Trash2 className="w-3.5 h-3.5 text-[#BE123C]" />
                       Delete
                     </button>
                   )}

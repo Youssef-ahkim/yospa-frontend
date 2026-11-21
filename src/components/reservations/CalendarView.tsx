@@ -64,7 +64,12 @@ export function CalendarView({
   updatingId,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      return "day";
+    }
+    return "week";
+  });
   const [showCancelled, setShowCancelled] = useState<boolean>(false);
   const [therapistFilter, setTherapistFilter] = useState<string>("all");
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
@@ -238,6 +243,7 @@ export function CalendarView({
               onClick={handlePrev}
               className="p-1.5 rounded-lg hover:bg-white text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
               title="Previous"
+              aria-label="Previous period"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -251,6 +257,7 @@ export function CalendarView({
               onClick={handleNext}
               className="p-1.5 rounded-lg hover:bg-white text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
               title="Next"
+              aria-label="Next period"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -337,7 +344,12 @@ export function CalendarView({
             </div>
 
             {/* Day Column Headers */}
-            <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${daysInView.length}, minmax(0, 1fr))` }}>
+            <div
+              className="flex-1 grid"
+              style={{
+                gridTemplateColumns: `repeat(${daysInView.length}, minmax(${viewMode === "week" ? "110px" : "0"}, 1fr))`,
+              }}
+            >
               {daysInView.map((dayDate, idx) => {
                 const isCurrentToday = isSameDay(dayDate, now);
                 const dayName = dayDate.toLocaleDateString(undefined, { weekday: "short" });
@@ -390,7 +402,7 @@ export function CalendarView({
             <div
               className="flex-1 grid relative"
               style={{
-                gridTemplateColumns: `repeat(${daysInView.length}, minmax(0, 1fr))` ,
+                gridTemplateColumns: `repeat(${daysInView.length}, minmax(${viewMode === "week" ? "110px" : "0"}, 1fr))`,
                 height: `${TOTAL_HOURS * HOUR_HEIGHT}px`,
               }}
             >
