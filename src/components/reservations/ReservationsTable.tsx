@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Reservation, ReservationStatus, ALLOWED_STATUS_TRANSITIONS } from "@/types";
+import { usePermissions } from "@/lib/permissions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@/lib/currency";
@@ -40,6 +41,7 @@ export function ReservationsTable({
   onCreateClick,
   onClearFilters,
 }: ReservationsTableProps) {
+  const { canDelete } = usePermissions();
   if (displayedReservations.length === 0) {
     return (
       <div className="text-center py-16 bg-white border border-[#EAE4F2] rounded-2xl space-y-3 shadow-xs">
@@ -229,7 +231,7 @@ export function ReservationsTable({
                           </button>
                         )}
 
-                        {(res.status === "pending" || res.status === "cancelled") && (
+                        {canDelete && (res.status === "pending" || res.status === "cancelled") && (
                           <button
                             type="button"
                             disabled={isRowUpdating}

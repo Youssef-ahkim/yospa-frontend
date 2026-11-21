@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { Service } from "@/types";
+import { usePermissions } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/currency";
 import { ServiceFormSlideOver } from "@/components/services/ServiceFormSlideOver";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -24,6 +25,7 @@ type StatusFilter = "all" | "active" | "inactive";
 
 export default function ServicesPage() {
   const toast = useToast();
+  const { canManageServices } = usePermissions();
 
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -227,14 +229,16 @@ export default function ServicesPage() {
             Manage your spa treatments, durations, pricing, and availability
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7455A4] hover:bg-[#5E4387] text-white font-semibold text-sm rounded-xl shadow-xs transition-all duration-200 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New service</span>
-        </button>
+        {canManageServices && (
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7455A4] hover:bg-[#5E4387] text-white font-semibold text-sm rounded-xl shadow-xs transition-all duration-200 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New service</span>
+          </button>
+        )}
       </div>
 
       {/* Search and Status Filters */}
@@ -355,14 +359,16 @@ export default function ServicesPage() {
             </p>
           </div>
           {!searchQuery && statusFilter === "all" ? (
-            <button
-              type="button"
-              onClick={handleOpenCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#7455A4] hover:bg-[#5E4387] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>New service</span>
-            </button>
+            canManageServices ? (
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#7455A4] hover:bg-[#5E4387] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New service</span>
+              </button>
+            ) : null
           ) : (
             <button
               type="button"
@@ -387,7 +393,7 @@ export default function ServicesPage() {
                   <th className="px-6 py-3.5">Duration</th>
                   <th className="px-6 py-3.5">Price</th>
                   <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  {canManageServices && <th className="px-6 py-3.5 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#FAF8FC] bg-white">
@@ -469,46 +475,48 @@ export default function ServicesPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Toggle Active/Inactive */}
-                          <button
-                            type="button"
-                            disabled={isInFlight}
-                            onClick={() => handleToggleActive(service)}
-                            title={service.is_active ? "Deactivate service" : "Activate service"}
-                            className={`p-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                              service.is_active
-                                ? "border-[#EAE4F2] text-[#7A6F86] hover:text-amber-700 hover:bg-amber-50 hover:border-amber-200"
-                                : "border-[#91A68D]/40 text-[#91A68D] hover:bg-[#91A68D]/15"
-                            }`}
-                          >
-                            <Power className="w-3.5 h-3.5" />
-                          </button>
+                      {canManageServices && (
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Toggle Active/Inactive */}
+                            <button
+                              type="button"
+                              disabled={isInFlight}
+                              onClick={() => handleToggleActive(service)}
+                              title={service.is_active ? "Deactivate service" : "Activate service"}
+                              className={`p-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                service.is_active
+                                  ? "border-[#EAE4F2] text-[#7A6F86] hover:text-amber-700 hover:bg-amber-50 hover:border-amber-200"
+                                  : "border-[#91A68D]/40 text-[#91A68D] hover:bg-[#91A68D]/15"
+                              }`}
+                            >
+                              <Power className="w-3.5 h-3.5" />
+                            </button>
 
-                          {/* Edit */}
-                          <button
-                            type="button"
-                            disabled={isInFlight}
-                            onClick={() => handleOpenEdit(service)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                          </button>
+                            {/* Edit */}
+                            <button
+                              type="button"
+                              disabled={isInFlight}
+                              onClick={() => handleOpenEdit(service)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
 
-                          {/* Delete */}
-                          <button
-                            type="button"
-                            disabled={isInFlight}
-                            onClick={() => setDeleteTarget(service)}
-                            className="p-1.5 rounded-lg text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Delete service"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              disabled={isInFlight}
+                              onClick={() => setDeleteTarget(service)}
+                              className="p-1.5 rounded-lg text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                              title="Delete service"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -587,40 +595,42 @@ export default function ServicesPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        disabled={isInFlight}
-                        onClick={() => handleToggleActive(service)}
-                        className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer disabled:opacity-40 ${
-                          service.is_active
-                            ? "border-[#EAE4F2] text-[#7A6F86] hover:bg-amber-50 hover:text-amber-700"
-                            : "border-[#91A68D]/30 text-[#91A68D] bg-[#91A68D]/10"
-                        }`}
-                      >
-                        {service.is_active ? "Deactivate" : "Activate"}
-                      </button>
+                    {canManageServices && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isInFlight}
+                          onClick={() => handleToggleActive(service)}
+                          className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer disabled:opacity-40 ${
+                            service.is_active
+                              ? "border-[#EAE4F2] text-[#7A6F86] hover:bg-amber-50 hover:text-amber-700"
+                              : "border-[#91A68D]/30 text-[#91A68D] bg-[#91A68D]/10"
+                          }`}
+                        >
+                          {service.is_active ? "Deactivate" : "Activate"}
+                        </button>
 
-                      <button
-                        type="button"
-                        disabled={isInFlight}
-                        onClick={() => handleOpenEdit(service)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                        <span>Edit</span>
-                      </button>
+                        <button
+                          type="button"
+                          disabled={isInFlight}
+                          onClick={() => handleOpenEdit(service)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        disabled={isInFlight}
-                        onClick={() => setDeleteTarget(service)}
-                        className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-40"
-                        title="Delete service"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          disabled={isInFlight}
+                          onClick={() => setDeleteTarget(service)}
+                          className="p-1 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-40"
+                          title="Delete service"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

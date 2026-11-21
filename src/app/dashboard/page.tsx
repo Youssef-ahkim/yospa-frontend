@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/lib/permissions";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -12,6 +13,7 @@ import { BestSellerCard } from "@/components/dashboard/BestSellerCard";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { canSeeRevenue } = usePermissions();
   const { isLoading, error, data, refetch } = useDashboardData();
 
   const greeting = useMemo(() => {
@@ -56,7 +58,11 @@ export default function DashboardPage() {
 
       <StatCards isLoading={isLoading} data={data} />
 
-      <SalesChart data={data} />
+      {/* 
+        Note: Revenue hiding for staff is cosmetic only as the backend API 
+        still returns prices and financial fields in reservation payloads.
+      */}
+      {canSeeRevenue && <SalesChart data={data} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <TransactionsTable reservations={data?.allRecentReservations} />

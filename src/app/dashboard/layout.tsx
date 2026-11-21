@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, Suspense, useState, useCallback } from "react";
+import { useEffect, Suspense, useState, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/lib/permissions";
 import { getSafeRedirectPath } from "@/lib/api";
 import { Spinner } from "@/components/ui/Spinner";
 import Image from "next/image";
@@ -16,28 +17,28 @@ import {
   Menu,
   X,
   Sparkles,
+  UserCheck,
+  UserCog,
+  MoreHorizontal,
 } from "lucide-react";
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: any;
-}
-
-const navigation: NavItem[] = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clients", href: "/dashboard/clients", icon: Users },
-  { name: "Reservations", href: "/dashboard/reservations", icon: Calendar },
-  { name: "Services", href: "/dashboard/services", icon: Sparkles },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
-];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { canManageStaff } = usePermissions();
+
+  const navItems = [
+    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Clients", href: "/dashboard/clients", icon: Users },
+    { name: "Reservations", href: "/dashboard/reservations", icon: Calendar },
+    { name: "Services", href: "/dashboard/services", icon: Sparkles },
+    { name: "Therapists", href: "/dashboard/therapists", icon: UserCheck },
+    ...(canManageStaff ? [{ name: "Staff", href: "/dashboard/staff", icon: UserCog }] : []),
+    { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  ];
 
   return (
     <div className="space-y-1">
-      {navigation.map((item) => {
+      {navItems.map((item) => {
         const isActive =
           pathname === item.href ||
           (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -72,33 +73,147 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 function BottomTabBar() {
   const pathname = usePathname();
+  const { canManageStaff } = usePermissions();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const moreItems = [
+    { name: "Therapists", href: "/dashboard/therapists", icon: UserCheck },
+    ...(canManageStaff ? [{ name: "Staff", href: "/dashboard/staff", icon: UserCog }] : []),
+    { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  ];
+
+  const isMoreActive = moreItems.some((item) =>
+    pathname === item.href || pathname.startsWith(item.href)
+  );
+
+  // Close menu on click outside or Escape
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setMoreOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMoreOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [moreOpen]);
+
+  const primaryTabs = [
+    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Bookings", href: "/dashboard/reservations", icon: Calendar },
+    { name: "Clients", href: "/dashboard/clients", icon: Users },
+    { name: "Services", href: "/dashboard/services", icon: Sparkles },
+  ];
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-[#EAE4F2] flex md:hidden safe-area-pb shadow-lg">
-      {navigation.map((item) => {
-        const isActive =
-          pathname === item.href ||
-          (item.href !== "/dashboard" && pathname.startsWith(item.href));
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-semibold tracking-tight transition-colors ${
-              isActive ? "text-[#7455A4]" : "text-[#7A6F86] hover:text-[#33283D]"
-            }`}
-          >
-            <div
-              className={`w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${
-                isActive ? "bg-[#F0EAF7]" : ""
+    <>
+      {/* Mobile More Popover Menu */}
+      {moreOpen && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Additional navigation options"
+          className="fixed bottom-16 right-3 z-50 w-52 bg-white rounded-2xl border border-[#EAE4F2] shadow-xl p-1.5 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150"
+        >
+          <div className="px-3 py-1.5 text-[10px] font-bold text-[#7A6F86] uppercase tracking-wider border-b border-[#FAF8FC]">
+            More Pages
+          </div>
+          {moreItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                role="menuitem"
+                onClick={() => setMoreOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-xl transition-colors ${
+                  isActive
+                    ? "bg-[#F0EAF7] text-[#7455A4]"
+                    : "text-[#33283D] hover:bg-[#FAF8FC] hover:text-[#7455A4]"
+                }`}
+              >
+                <Icon size={16} className={isActive ? "text-[#7455A4]" : "text-[#9275BC]"} />
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fixed Bottom Bar */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAE4F2] flex md:hidden safe-area-pb shadow-lg"
+      >
+        {primaryTabs.map((item) => {
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-semibold tracking-tight transition-colors ${
+                isActive ? "text-[#7455A4]" : "text-[#7A6F86] hover:text-[#33283D]"
               }`}
             >
-              <Icon size={16} />
-            </div>
-            <span className="truncate max-w-full text-center">{item.name}</span>
-          </Link>
-        );
-      })}
-    </nav>
+              <div
+                className={`w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${
+                  isActive ? "bg-[#F0EAF7]" : ""
+                }`}
+              >
+                <Icon size={16} />
+              </div>
+              <span className="truncate max-w-full text-center">{item.name}</span>
+            </Link>
+          );
+        })}
+
+        {/* More Tab Button */}
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={moreOpen}
+          aria-label="More navigation options"
+          onClick={() => setMoreOpen((prev) => !prev)}
+          className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-semibold tracking-tight transition-colors cursor-pointer ${
+            isMoreActive || moreOpen
+              ? "text-[#7455A4]"
+              : "text-[#7A6F86] hover:text-[#33283D]"
+          }`}
+        >
+          <div
+            className={`w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${
+              isMoreActive || moreOpen ? "bg-[#F0EAF7]" : ""
+            }`}
+          >
+            <MoreHorizontal size={16} />
+          </div>
+          <span className="truncate max-w-full text-center">More</span>
+        </button>
+      </nav>
+    </>
   );
 }
 

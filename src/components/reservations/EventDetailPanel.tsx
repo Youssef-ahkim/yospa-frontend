@@ -7,6 +7,7 @@ import {
   ReservationStatus, 
   ALLOWED_STATUS_TRANSITIONS 
 } from "@/types";
+import { usePermissions } from "@/lib/permissions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@/lib/currency";
@@ -46,6 +47,7 @@ export function EventDetailPanel({
   onDeleteClick,
   isUpdating,
 }: EventDetailPanelProps) {
+  const { canDelete } = usePermissions();
   // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -112,7 +114,7 @@ export function EventDetailPanel({
                 <span>Edit</span>
               </button>
             )}
-            {(reservation.status === "pending" || reservation.status === "cancelled") && (
+            {canDelete && (reservation.status === "pending" || reservation.status === "cancelled") && (
               <button
                 type="button"
                 disabled={isUpdating}

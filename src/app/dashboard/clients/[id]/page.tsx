@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Client, Reservation, ReservationStatus } from "@/types";
+import { usePermissions } from "@/lib/permissions";
 import { useToast } from "@/context/ToastContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Spinner } from "@/components/ui/Spinner";
@@ -42,6 +43,8 @@ function ClientDetailContent() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { canDelete } = usePermissions();
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -290,13 +293,15 @@ function ClientDetailContent() {
             <Edit3 className="w-4 h-4 text-[#7A6F86]" />
             Edit Profile
           </button>
-          <button
-            onClick={() => setIsDeleteOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 shadow-xs transition-colors cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => setIsDeleteOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 shadow-xs transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
 
