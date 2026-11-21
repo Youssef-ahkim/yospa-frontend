@@ -14,7 +14,9 @@ import {
   AlertCircle,
   RotateCcw,
   ChevronRight,
+  Plus,
 } from "lucide-react";
+import { CreateSpaSlideOver } from "@/components/platform/CreateSpaSlideOver";
 
 type StatusFilter = "all" | "active" | "suspended";
 
@@ -33,6 +35,9 @@ export default function PlatformSpasPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // Create slide-over state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // Ref to track latest request ID and prevent race conditions/stale responses
   const requestIdRef = useRef(0);
@@ -126,6 +131,13 @@ export default function PlatformSpasPage() {
             Manage all tenant spas, view system-wide stats, and provision tenant owners
           </p>
         </div>
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#7455A4] hover:bg-[#63478e] shadow-sm transition-all cursor-pointer min-h-[40px] self-start sm:self-auto"
+        >
+          <Plus size={16} />
+          <span>New Spa</span>
+        </button>
       </div>
 
       {/* ── Platform Stats Cards ── */}
@@ -330,7 +342,7 @@ export default function PlatformSpasPage() {
               ? "No spas match your current search or filter criteria. Try clearing filters."
               : "No tenant spas have been provisioned on the platform yet."}
           </p>
-          {(searchInput || statusFilter !== "all") && (
+          {searchInput || statusFilter !== "all" ? (
             <button
               onClick={() => {
                 setSearchInput("");
@@ -339,6 +351,14 @@ export default function PlatformSpasPage() {
               className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold bg-[#F0EAF7] text-[#7455A4] hover:bg-[#E4D8EE] transition-colors cursor-pointer min-h-[40px]"
             >
               Clear all filters
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#7455A4] hover:bg-[#63478e] transition-colors cursor-pointer min-h-[40px]"
+            >
+              <Plus size={14} />
+              <span>Create First Spa</span>
             </button>
           )}
         </div>
@@ -522,6 +542,16 @@ export default function PlatformSpasPage() {
           </div>
         </div>
       )}
+
+      {/* Create Spa Slide-Over */}
+      <CreateSpaSlideOver
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={() => {
+          fetchStats();
+          fetchSpas(debouncedSearch, statusFilter);
+        }}
+      />
     </div>
   );
 }
