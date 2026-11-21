@@ -230,7 +230,9 @@ export function CreateSpaSlideOver({
     return (
       <SlideOver
         open={open}
-        onClose={handleFinalClose}
+        onClose={() => {
+          toast.error("Please confirm you have saved the password by clicking \"I've saved it\".");
+        }}
         title="Spa Created Successfully"
         description="Save the owner credentials. The password is only displayed once."
         icon={

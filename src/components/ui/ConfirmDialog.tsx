@@ -16,6 +16,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   confirmClassName?: string;
   isConfirming?: boolean;
+  confirmDisabled?: boolean;
 }
 
 export function ConfirmDialog({
@@ -30,6 +31,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   confirmClassName = "bg-red-600 hover:bg-red-700 text-white",
   isConfirming = false,
+  confirmDisabled = false,
 }: ConfirmDialogProps) {
   // Lock body scroll
   useEffect(() => {
@@ -88,7 +90,7 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            disabled={isConfirming}
+            disabled={isConfirming || confirmDisabled}
             onClick={onConfirm}
             className={`flex-1 py-2 px-4 font-medium text-sm rounded-lg shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${confirmClassName}`}
           >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -27,6 +27,81 @@ const navItems: NavItem[] = [
   { name: "Account", href: "/platform/account", icon: User },
 ];
 
+function DesktopNavLinks() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="mt-1 flex-1 px-3 space-y-1">
+      {navItems.map((item) => {
+        const isActive =
+          item.href === "/platform"
+            ? pathname === "/platform" || pathname.startsWith("/platform/spas")
+            : pathname === item.href || pathname.startsWith(item.href);
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={`flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
+              isActive
+                ? "bg-[#F0EAF7] text-[#7455A4] font-semibold border border-[#C9B8E2]/50 shadow-xs"
+                : "text-[#33283D]/80 hover:bg-[#F0EAF7]/50 hover:text-[#7455A4]"
+            }`}
+          >
+            <Icon
+              size={18}
+              className={`flex-shrink-0 transition-colors ${
+                isActive ? "text-[#7455A4]" : "text-[#9275BC]"
+              }`}
+            />
+            <span className="flex-1">{item.name}</span>
+            {isActive && (
+              <span className="w-1.5 h-1.5 rounded-full bg-[#7455A4] flex-shrink-0" />
+            )}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function MobileNavLinks() {
+  const pathname = usePathname();
+
+  return (
+    <nav
+      aria-label="Platform mobile navigation"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white/95 backdrop-blur-md border-t border-[#EAE4F2] flex items-center justify-around px-2 shadow-lg"
+    >
+      {navItems.map((item) => {
+        const isActive =
+          item.href === "/platform"
+            ? pathname === "/platform" || pathname.startsWith("/platform/spas")
+            : pathname === item.href || pathname.startsWith(item.href);
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={`flex-1 min-w-0 min-h-[48px] flex flex-col items-center justify-center gap-1 py-1 px-1 text-[11px] font-semibold tracking-tight transition-colors ${
+              isActive ? "text-[#7455A4]" : "text-[#7A6F86] hover:text-[#33283D]"
+            }`}
+          >
+            <div
+              className={`w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${
+                isActive ? "bg-[#F0EAF7]" : ""
+              }`}
+            >
+              <Icon size={16} />
+            </div>
+            <span className="truncate max-w-full text-center">{item.name}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export default function PlatformClientLayout({
   children,
 }: {
@@ -34,7 +109,6 @@ export default function PlatformClientLayout({
 }) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading) {
@@ -119,37 +193,9 @@ export default function PlatformClientLayout({
             Navigation
           </div>
 
-          <nav className="mt-1 flex-1 px-3 space-y-1">
-            {navItems.map((item) => {
-              const isActive =
-                item.href === "/platform"
-                  ? pathname === "/platform" || pathname.startsWith("/platform/spas")
-                  : pathname === item.href || pathname.startsWith(item.href);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
-                    isActive
-                      ? "bg-[#F0EAF7] text-[#7455A4] font-semibold border border-[#C9B8E2]/50 shadow-xs"
-                      : "text-[#33283D]/80 hover:bg-[#F0EAF7]/50 hover:text-[#7455A4]"
-                  }`}
-                >
-                  <Icon
-                    size={18}
-                    className={`flex-shrink-0 transition-colors ${
-                      isActive ? "text-[#7455A4]" : "text-[#9275BC]"
-                    }`}
-                  />
-                  <span className="flex-1">{item.name}</span>
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#7455A4] flex-shrink-0" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={null}>
+            <DesktopNavLinks />
+          </Suspense>
 
           {/* User profile footer */}
           <div className="flex-shrink-0 p-4 border-t border-[#EAE4F2] bg-white">
@@ -209,36 +255,9 @@ export default function PlatformClientLayout({
       </main>
 
       {/* ── Mobile Bottom Navigation Bar ── */}
-      <nav
-        aria-label="Platform mobile navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white/95 backdrop-blur-md border-t border-[#EAE4F2] flex items-center justify-around px-2 shadow-lg"
-      >
-        {navItems.map((item) => {
-          const isActive =
-            item.href === "/platform"
-              ? pathname === "/platform" || pathname.startsWith("/platform/spas")
-              : pathname === item.href || pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex-1 min-w-0 min-h-[48px] flex flex-col items-center justify-center gap-1 py-1 px-1 text-[11px] font-semibold tracking-tight transition-colors ${
-                isActive ? "text-[#7455A4]" : "text-[#7A6F86] hover:text-[#33283D]"
-              }`}
-            >
-              <div
-                className={`w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${
-                  isActive ? "bg-[#F0EAF7]" : ""
-                }`}
-              >
-                <Icon size={16} />
-              </div>
-              <span className="truncate max-w-full text-center">{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <Suspense fallback={null}>
+        <MobileNavLinks />
+      </Suspense>
     </div>
   );
 }

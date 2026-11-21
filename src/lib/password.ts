@@ -15,11 +15,30 @@ export function generateSecurePassword(length: number = 16): string {
 
   const ALL = UPPER + LOWER + DIGITS + SYMBOLS;
 
-  // Use crypto.getRandomValues
+  // Use crypto.getRandomValues with rejection sampling to eliminate modulo bias
   const getRandomChar = (charset: string): string => {
+    const n = charset.length;
+    const maxMultiple = Math.floor(0x100000000 / n) * n;
     const array = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(array);
-    return charset[array[0] % charset.length];
+    while (true) {
+      globalThis.crypto.getRandomValues(array);
+      const val = array[0];
+      if (val < maxMultiple) {
+        return charset[val % n];
+      }
+    }
+  };
+
+  const getRandomIndex = (bound: number): number => {
+    const maxMultiple = Math.floor(0x100000000 / bound) * bound;
+    const array = new Uint32Array(1);
+    while (true) {
+      globalThis.crypto.getRandomValues(array);
+      const val = array[0];
+      if (val < maxMultiple) {
+        return val % bound;
+      }
+    }
   };
 
   // Guarantee at least one of each required group
@@ -37,12 +56,10 @@ export function generateSecurePassword(length: number = 16): string {
     remainingChars.push(getRandomChar(ALL));
   }
 
-  // Combine and shuffle using Fisher-Yates
+  // Combine and shuffle using Fisher-Yates with unbiased rejection sampling
   const combined = [...requiredChars, ...remainingChars];
   for (let i = combined.length - 1; i > 0; i--) {
-    const array = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(array);
-    const j = array[0] % (i + 1);
+    const j = getRandomIndex(i + 1);
     [combined[i], combined[j]] = [combined[j], combined[i]];
   }
 
