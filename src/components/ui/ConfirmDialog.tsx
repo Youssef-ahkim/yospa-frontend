@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Spinner } from "./Spinner";
 
@@ -33,19 +33,65 @@ export function ConfirmDialog({
   isConfirming = false,
   confirmDisabled = false,
 }: ConfirmDialogProps) {
-  // Lock body scroll
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  // Lock body scroll, capture trigger element on open and restore on close
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    if (open) {
+      triggerRef.current = document.activeElement as HTMLElement | null;
+      document.body.style.overflow = "hidden";
+      const timer = setTimeout(() => {
+        const inputOrButton = dialogRef.current?.querySelector<HTMLElement>(
+          'input:not([disabled]), button:not([disabled])'
+        );
+        inputOrButton?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      document.body.style.overflow = "";
+      if (triggerRef.current && typeof triggerRef.current.focus === "function") {
+        triggerRef.current.focus();
+      }
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
-  // Escape to close
+  // Focus trap and Escape to close
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            last.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === last) {
+            first.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
   if (!open) return null;
@@ -58,6 +104,7 @@ export function ConfirmDialog({
         aria-hidden="true"
       />
       <div
+        ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"

@@ -191,7 +191,7 @@ export default function PlatformAuditPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#FAF8FC] p-1 rounded-xl border border-[#EAE4F2] self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 bg-[#FAF8FC] p-1 rounded-xl border border-[#EAE4F2] overflow-x-auto max-w-full pb-0.5 self-start sm:self-auto">
           {[
             { label: "All Events", value: "all" },
             { label: "Spa Events", value: "spa" },
@@ -378,7 +378,7 @@ export default function PlatformAuditPage() {
 
                   <div>
                     <span className="text-[#7A6F86]">Target: </span>
-                    <span className="font-medium text-[#1A1626] font-mono text-[11px]">{targetLabel}</span>
+                    <span className="font-medium text-[#1A1626] font-mono text-[11px] break-all">{targetLabel}</span>
                   </div>
 
                   <div>{formatMeta(log.meta)}</div>

@@ -273,7 +273,7 @@ export default function PlatformSpasPage() {
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 bg-[#FAF8FC] p-1 rounded-xl border border-[#EAE4F2] self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 bg-[#FAF8FC] p-1 rounded-xl border border-[#EAE4F2] overflow-x-auto max-w-full pb-0.5 self-start sm:self-auto">
           {(["all", "active", "suspended"] as StatusFilter[]).map((tab) => {
             const isSelected = statusFilter === tab;
             return (
@@ -504,7 +504,7 @@ export default function PlatformSpasPage() {
                     </span>
                   </div>
 
-                  <div className="text-xs text-[#7A6F86]">
+                  <div className="text-xs text-[#7A6F86] break-all">
                     <span className="font-medium text-[#33283D]">Owner: </span>
                     {spa.owner_emails && spa.owner_emails.length > 0
                       ? spa.owner_emails.join(", ")

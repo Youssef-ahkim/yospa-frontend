@@ -26,35 +26,66 @@ export function SlideOver({
   width = "max-w-md",
 }: SlideOverProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
 
-  // Lock body scroll while open
+  // Lock body scroll, capture trigger element on open and restore on close
   useEffect(() => {
     if (open) {
+      triggerRef.current = document.activeElement as HTMLElement | null;
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
+      if (triggerRef.current && typeof triggerRef.current.focus === "function") {
+        triggerRef.current.focus();
+      }
     }
     return () => {
       document.body.style.overflow = "";
     };
   }, [open]);
 
-  // Close on Escape
+  // Focus trap and Escape handler
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "Tab" && panelRef.current) {
+        const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
-  // Focus first input when open
+  // Focus first input or button when open
   useEffect(() => {
     if (!open || !panelRef.current) return;
     const timer = setTimeout(() => {
       const input = panelRef.current?.querySelector<HTMLElement>(
-        "input, select, textarea"
+        "input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])"
       );
       if (input) input.focus();
     }, 50);

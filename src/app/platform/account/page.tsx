@@ -47,7 +47,7 @@ export default function PlatformAccountPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-[#1A1626]">{user?.name}</p>
-              <p className="text-sm text-[#7A6F86]">{user?.email}</p>
+              <p className="text-sm text-[#7A6F86] break-all">{user?.email}</p>
             </div>
           </div>
 

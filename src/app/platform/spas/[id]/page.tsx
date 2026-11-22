@@ -528,7 +528,7 @@ function SpaDetailContent({ params }: PageProps) {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="font-semibold text-sm text-[#1A1626]">{u.name}</h3>
-                  <p className="text-xs text-[#7A6F86] font-mono">{u.email}</p>
+                  <p className="text-xs text-[#7A6F86] font-mono break-all">{u.email}</p>
                 </div>
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
