@@ -37,50 +37,106 @@ export interface AccountEditPermission {
   canEdit: boolean;
   canDeactivate: boolean;
   canChangeRole: boolean;
+  canResetPassword: boolean;
   reason?: string;
+}
+
+/**
+ * Returns allowed roles that can be assigned by the caller.
+ * - Owner caller: only "admin" and "staff".
+ * - Admin caller: only "staff".
+ * - "owner" and "superuser" never appear for tenant users.
+ */
+export function getAllowedRolesForCaller(callerRole?: Role | null): Role[] {
+  if (callerRole === "owner") {
+    return ["admin", "staff"];
+  }
+  if (callerRole === "admin") {
+    return ["staff"];
+  }
+  return [];
 }
 
 /**
  * Evaluates permissions to edit a staff/user account.
  * - staff cannot edit any accounts.
+ * - owner accounts are managed solely by platform administrator (cannot be modified by owners or admins).
  * - admin can only create/edit staff accounts (cannot modify owner or other admin accounts).
  * - admin/owner cannot deactivate or change role of their own account (self-deactivate/demote).
- * - owner can edit all accounts (except self-demote/self-deactivate).
+ * - signed-in user's own row allows editing name and email.
  */
 export function canEditAccount(
   currentUser: { role: Role; id?: number } | null | undefined,
   targetUser: { role: Role; id: number }
 ): AccountEditPermission {
   if (!currentUser) {
-    return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Not logged in." };
+    return {
+      canEdit: false,
+      canDeactivate: false,
+      canChangeRole: false,
+      canResetPassword: false,
+      reason: "Not logged in.",
+    };
   }
 
   if (currentUser.role === "superuser" || targetUser.role === "superuser") {
-    return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Platform accounts cannot be edited from tenant management." };
+    return {
+      canEdit: false,
+      canDeactivate: false,
+      canChangeRole: false,
+      canResetPassword: false,
+      reason: "Platform accounts cannot be edited from tenant management.",
+    };
   }
 
   if (currentUser.role === "staff") {
-    return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Staff members cannot manage user accounts." };
+    return {
+      canEdit: false,
+      canDeactivate: false,
+      canChangeRole: false,
+      canResetPassword: false,
+      reason: "Staff members cannot manage user accounts.",
+    };
   }
 
   const isSelf = currentUser.id === targetUser.id;
 
+  // Protect owner accounts: no tenant user (owner or admin) can modify another owner
+  if (targetUser.role === "owner" && !isSelf) {
+    return {
+      canEdit: false,
+      canDeactivate: false,
+      canChangeRole: false,
+      canResetPassword: false,
+      reason: "Owners are managed by the platform administrator",
+    };
+  }
+
   if (currentUser.role === "admin") {
-    if (targetUser.role === "owner") {
-      return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Admins cannot modify owner accounts." };
-    }
     if (targetUser.role === "admin" && !isSelf) {
-      return { canEdit: false, canDeactivate: false, canChangeRole: false, reason: "Admins cannot modify other admin accounts." };
+      return {
+        canEdit: false,
+        canDeactivate: false,
+        canChangeRole: false,
+        canResetPassword: false,
+        reason: "Only owners can manage admins",
+      };
     }
     if (isSelf) {
       return {
         canEdit: true,
         canDeactivate: false,
         canChangeRole: false,
+        canResetPassword: true,
         reason: "You cannot deactivate or change the role of your own account.",
       };
     }
-    return { canEdit: true, canDeactivate: true, canChangeRole: true };
+    return {
+      canEdit: true,
+      canDeactivate: true,
+      canChangeRole: true,
+      canResetPassword: true,
+    };
   }
 
   if (currentUser.role === "owner") {
@@ -89,13 +145,24 @@ export function canEditAccount(
         canEdit: true,
         canDeactivate: false,
         canChangeRole: false,
-        reason: "The owner account cannot be deactivated or demoted.",
+        canResetPassword: false, // Owner changes password in Settings / Account
+        reason: "You cannot deactivate or change the role of your own account.",
       };
     }
-    return { canEdit: true, canDeactivate: true, canChangeRole: true };
+    return {
+      canEdit: true,
+      canDeactivate: true,
+      canChangeRole: true,
+      canResetPassword: true,
+    };
   }
 
-  return { canEdit: false, canDeactivate: false, canChangeRole: false };
+  return {
+    canEdit: false,
+    canDeactivate: false,
+    canChangeRole: false,
+    canResetPassword: false,
+  };
 }
 
 export function usePermissions() {
@@ -115,5 +182,6 @@ export function usePermissions() {
     canSeeRevenue: canSeeRevenue(role),
     canManagePlatform: canManagePlatform(role),
     canEditAccount: (targetUser: { role: Role; id: number }) => canEditAccount(user, targetUser),
+    allowedRoles: getAllowedRolesForCaller(role),
   };
 }

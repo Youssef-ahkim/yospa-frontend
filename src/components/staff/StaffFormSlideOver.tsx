@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/context/ToastContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Staff, Role } from "@/types";
-import { usePermissions } from "@/lib/permissions";
+import { usePermissions, getAllowedRolesForCaller } from "@/lib/permissions";
 import { UserPlus, Edit3, Eye, EyeOff, Info } from "lucide-react";
 
 interface StaffFormSlideOverProps {
@@ -26,12 +26,12 @@ export function StaffFormSlideOver({
   onSuccess,
 }: StaffFormSlideOverProps) {
   const toast = useToast();
-  const { isOwner, canEditAccount } = usePermissions();
+  const { role: callerRole, canEditAccount } = usePermissions();
   const isEdit = Boolean(staff);
 
   const editPermission = staff
     ? canEditAccount(staff)
-    : { canEdit: true, canDeactivate: true, canChangeRole: true };
+    : { canEdit: true, canDeactivate: true, canChangeRole: true, canResetPassword: true };
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -76,16 +76,24 @@ export function StaffFormSlideOver({
     }
   }, [open, staff]);
 
-  // Allowed role options: admin can only assign "staff"; owner can assign "staff", "admin", "owner"
-  const availableRoles: { value: Role; label: string; description: string }[] = isOwner
-    ? [
-        { value: "staff", label: "Staff", description: "Can manage reservations & clients; read-only services/therapists." },
-        { value: "admin", label: "Admin", description: "Can manage services, therapists, and staff accounts." },
-        { value: "owner", label: "Owner", description: "Full unrestricted administrative access to the spa." },
-      ]
-    : [
-        { value: "staff", label: "Staff", description: "Can manage reservations & clients; read-only services/therapists." },
-      ];
+  // Allowed role options by caller: owner sees admin and staff; admin sees staff; owner never appears for tenant users
+  const allowedRoles = getAllowedRolesForCaller(callerRole);
+  const roleDescriptions: Record<string, { label: string; description: string }> = {
+    staff: {
+      label: "Staff",
+      description: "Can manage reservations & clients; read-only services/therapists.",
+    },
+    admin: {
+      label: "Admin",
+      description: "Can manage services, therapists, and staff accounts.",
+    },
+  };
+
+  const availableRoles = allowedRoles.map((r) => ({
+    value: r,
+    label: roleDescriptions[r]?.label || r,
+    description: roleDescriptions[r]?.description || "",
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +121,7 @@ export function StaffFormSlideOver({
       } else if (trimmedPassword.length < 8) {
         errors.password = ["Password must be at least 8 characters."];
       }
-    } else if (trimmedPassword && trimmedPassword.length < 8) {
+    } else if (editPermission.canResetPassword && trimmedPassword && trimmedPassword.length < 8) {
       errors.password = ["New password must be at least 8 characters."];
     }
 
@@ -129,14 +137,22 @@ export function StaffFormSlideOver({
       const payload: Record<string, unknown> = {
         name: trimmedName,
         email: trimmedEmail,
-        role: formData.role,
-        is_active: formData.is_active,
       };
 
       if (!isEdit) {
+        payload.role = formData.role;
         payload.password = trimmedPassword;
-      } else if (trimmedPassword) {
-        payload.password = trimmedPassword;
+        payload.is_active = formData.is_active;
+      } else {
+        if (editPermission.canChangeRole) {
+          payload.role = formData.role;
+        }
+        if (editPermission.canDeactivate) {
+          payload.is_active = formData.is_active;
+        }
+        if (editPermission.canResetPassword && trimmedPassword) {
+          payload.password = trimmedPassword;
+        }
       }
 
       const endpoint = isEdit ? `/staff/${staff!.id}` : "/staff";
@@ -160,6 +176,8 @@ export function StaffFormSlideOver({
         const nonFieldKeys = Object.keys(err.errors).filter((k) => !knownFields.includes(k));
         if (nonFieldKeys.length > 0) {
           toast.error(err.errors[nonFieldKeys[0]][0] || err.message);
+        } else if (err.errors.role) {
+          toast.error(err.errors.role[0]);
         } else {
           toast.error("Validation error. Please check your inputs.");
         }
@@ -257,6 +275,11 @@ export function StaffFormSlideOver({
               onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value as Role }))}
               className={`${inputClass("role")} capitalize disabled:bg-gray-100 disabled:cursor-not-allowed`}
             >
+              {!allowedRoles.includes(formData.role) && (
+                <option value={formData.role} disabled>
+                  {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
+                </option>
+              )}
               {availableRoles.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
@@ -266,7 +289,7 @@ export function StaffFormSlideOver({
             {isEdit && !editPermission.canChangeRole && (
               <p className="text-[11px] text-amber-700 flex items-center gap-1">
                 <Info className="w-3 h-3 flex-shrink-0" />
-                <span>You cannot change the role of your own account.</span>
+                <span>{editPermission.reason || "You cannot change the role of your own account."}</span>
               </p>
             )}
             <p className="text-[11px] text-[#7A6F86]">
@@ -276,38 +299,47 @@ export function StaffFormSlideOver({
         </FormField>
 
         {/* Password */}
-        <FormField
-          label={isEdit ? "New Password" : "Password"}
-          required={!isEdit}
-          error={fieldErrors.password?.[0]}
-        >
-          <div className="space-y-1">
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required={!isEdit}
-                minLength={8}
-                value={formData.password}
-                onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-                placeholder={isEdit ? "Leave blank to keep current password" : "At least 8 characters"}
-                className={`${inputClass("password")} pr-10`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {isEdit && (
-              <p className="text-[11px] text-[#7A6F86]">
-                Only enter a password if you want to reset credentials for this user.
-              </p>
-            )}
+        {isEdit && !editPermission.canResetPassword ? (
+          <div className="p-3.5 bg-[#FAF8FC] border border-[#EAE4F2] rounded-xl text-xs text-[#7A6F86] flex items-start gap-2">
+            <Info className="w-4 h-4 text-[#7455A4] flex-shrink-0 mt-0.5" />
+            <span>
+              {editPermission.reason || "To change your password, use the Change Password card in Settings or Account."}
+            </span>
           </div>
-        </FormField>
+        ) : (
+          <FormField
+            label={isEdit ? "New Password" : "Password"}
+            required={!isEdit}
+            error={fieldErrors.password?.[0]}
+          >
+            <div className="space-y-1">
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required={!isEdit}
+                  minLength={8}
+                  value={formData.password}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder={isEdit ? "Leave blank to keep current password" : "At least 8 characters"}
+                  className={`${inputClass("password")} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {isEdit && (
+                <p className="text-[11px] text-[#7A6F86]">
+                  Only enter a password if you want to reset credentials for this user.
+                </p>
+              )}
+            </div>
+          </FormField>
+        )}
 
         {/* Active Status Switch (in edit mode or always) */}
         <div className="pt-1">

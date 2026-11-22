@@ -474,6 +474,12 @@ export default function StaffPage() {
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {!editPermission.canEdit && editPermission.reason && (
+                            <span className="text-[11px] text-[#7A6F86] italic mr-1.5 hidden lg:inline">
+                              {editPermission.reason}
+                            </span>
+                          )}
+
                           {/* Toggle Active/Inactive */}
                           <button
                             type="button"
@@ -503,6 +509,8 @@ export default function StaffPage() {
                             title={
                               !editPermission.canEdit
                                 ? editPermission.reason || "Action disabled"
+                                : isSelf
+                                ? "Edit profile details"
                                 : "Edit account details"
                             }
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -610,6 +618,8 @@ export default function StaffPage() {
                         title={
                           !editPermission.canEdit
                             ? editPermission.reason || "Action disabled"
+                            : isSelf
+                            ? "Edit profile"
                             : "Edit account"
                         }
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -623,6 +633,11 @@ export default function StaffPage() {
                       </button>
                     </div>
                   </div>
+                  {!editPermission.canEdit && editPermission.reason && (
+                    <p className="text-[11px] text-[#7A6F86] italic text-right pt-0.5">
+                      {editPermission.reason}
+                    </p>
+                  )}
                 </div>
               );
             })}
