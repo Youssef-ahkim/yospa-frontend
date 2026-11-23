@@ -7,9 +7,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCards } from "@/components/dashboard/StatCards";
-import { SalesChart } from "@/components/dashboard/SalesChart";
 import { TransactionsTable } from "@/components/dashboard/TransactionsTable";
-import { BestSellerCard } from "@/components/dashboard/BestSellerCard";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -56,18 +54,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <StatCards isLoading={isLoading} data={data} />
+      <StatCards isLoading={isLoading} data={data} canSeeRevenue={canSeeRevenue} />
 
-      {/* 
-        Note: Revenue hiding for staff is cosmetic only as the backend API 
-        still returns prices and financial fields in reservation payloads.
-      */}
-      {canSeeRevenue && <SalesChart data={data} />}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <TransactionsTable reservations={data?.allRecentReservations} />
-        <BestSellerCard reservations={data?.allReservations} />
-      </div>
+      <TransactionsTable
+        reservations={data?.todaySchedule}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

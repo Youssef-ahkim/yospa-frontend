@@ -80,3 +80,12 @@ export function formatShortDateTime24(dateStr: string | Date): string {
   return `${month} ${day}, ${time}`;
 }
 
+/**
+ * Format Date as naive local date string "YYYY-MM-DD"
+ */
+export function toNaiveDateString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+

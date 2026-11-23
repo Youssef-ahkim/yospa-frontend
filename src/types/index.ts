@@ -155,6 +155,20 @@ export interface Paginated<T> {
   path?: string;
 }
 
+export interface DashboardSummary {
+  today_reservations_count: number;
+  upcoming_count: number;
+  revenue: number | null;
+  counts_by_status: {
+    pending: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+  };
+  total_clients: number;
+  total_reservations: number;
+}
+
 export interface PlatformStats {
   spas: {
     total: number;

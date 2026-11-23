@@ -1,15 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch } from "@/lib/api";
-import { Client, Reservation } from "@/types";
-import { isToday, isThisMonth } from "@/lib/dates";
-import { parsePrice } from "@/lib/currency";
-import {
-  getTodayGrowth,
-  getCompletedGrowth,
-  getClientsGrowth,
-} from "@/lib/analytics";
+import { DashboardSummary, Paginated, Reservation } from "@/types";
+import { toNaiveDateString } from "@/lib/dates";
 
 export interface MonthlyDataPoint {
   month: string;
@@ -25,173 +19,100 @@ export interface DashboardStats {
   futurePendingCount: number;
   overduePendingCount: number;
   totalClientsCount: number;
-  revenueThisMonth: number;
-  todayGrowth: string;
-  completedGrowth: string;
-  pendingGrowth: string;
-  clientsGrowth: string;
-  todaySchedule: Reservation[];
-  upcomingPendingShortlist: Reservation[];
-  allRecentReservations: Reservation[];
-  allReservations: Reservation[];
-  recentClients: Client[];
-  allClients: Client[];
   totalReservationsCount: number;
-  topService: {
-    name: string;
-    duration: number;
-    price: number;
-    bookingsCount: number;
-  } | null;
-  monthlyTrend: MonthlyDataPoint[];
+  revenueThisMonth: number | null;
+  revenue: number | null;
+  todayGrowth?: string;
+  completedGrowth?: string;
+  pendingGrowth?: string;
+  clientsGrowth?: string;
+  todaySchedule: Reservation[];
+  upcomingPendingShortlist?: Reservation[];
+  allRecentReservations?: Reservation[];
+  allReservations?: Reservation[];
+  summary: DashboardSummary | null;
 }
 
 export function useDashboardData() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardStats | null>(null);
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const currentRequestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
       setError(null);
 
-      const [clients, reservations] = await Promise.all([
-        apiFetch<Client[]>("/clients"),
-        apiFetch<Reservation[]>("/reservations"),
+      const today = toNaiveDateString(new Date());
+
+      const [summaryRes, scheduleRes] = await Promise.all([
+        apiFetch<DashboardSummary>("/dashboard/summary"),
+        apiFetch<Paginated<Reservation> | Reservation[]>(
+          `/reservations?from=${today}&to=${today}&per_page=10&sort=start_time&direction=asc`
+        ),
       ]);
 
-      const now = new Date();
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
 
-      // 1. Today's appointments (excluding cancelled)
-      const todayAppointmentsCount = reservations.filter(
-        (r) => isToday(r.start_time, now) && r.status !== "cancelled"
-      ).length;
+      const todaySchedule = Array.isArray(scheduleRes)
+        ? scheduleRes
+        : (scheduleRes?.data ?? []);
 
-      // 2. Completed & Cancelled count
-      const completedCount = reservations.filter((r) => r.status === "completed").length;
-      const cancelledCount = reservations.filter((r) => r.status === "cancelled").length;
-
-      // 3. Pending reservations split into future vs overdue
-      const allPending = reservations.filter((r) => r.status === "pending");
-      const futurePending = allPending.filter((r) => new Date(r.start_time) >= now);
-      const overduePending = allPending.filter((r) => new Date(r.start_time) < now);
-
-      // 4. Revenue this month (completed appointments only)
-      const revenueThisMonth = reservations
-        .filter((r) => r.status === "completed" && isThisMonth(r.start_time, now))
-        .reduce((sum, r) => sum + parsePrice(r.total_price), 0);
-
-      // 5. Today's schedule sorted chronologically
-      const todaySchedule = reservations
-        .filter((r) => isToday(r.start_time, now))
-        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-      // 6. Upcoming pending shortlist
-      const upcomingPendingShortlist = futurePending
-        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-        .slice(0, 5);
-
-      // 7. Recent reservations (most recent first, for the table)
-      const allRecentReservations = [...reservations]
-        .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
-        .slice(0, 8);
-
-      // 8. Recent clients
-      const recentClients = clients.slice(0, 5);
-
-      // 9. Top service calculation
-      const serviceMap = new Map<string, { name: string; duration: number; price: number; count: number }>();
-      reservations.forEach((r) => {
-        if (r.service?.name) {
-          const key = r.service.name;
-          const curr = serviceMap.get(key) || {
-            name: key,
-            duration: r.service.duration_minutes || 60,
-            price: parsePrice(r.service.price),
-            count: 0,
-          };
-          curr.count += 1;
-          serviceMap.set(key, curr);
-        }
-      });
-      let topService: DashboardStats["topService"] = null;
-      let maxCount = -1;
-      serviceMap.forEach((val) => {
-        if (val.count > maxCount) {
-          maxCount = val.count;
-          topService = {
-            name: val.name,
-            duration: val.duration,
-            price: val.price,
-            bookingsCount: val.count,
-          };
-        }
-      });
-
-      // 10. 12-Month trend aggregation
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const currentYear = now.getFullYear();
-      const monthlyBuckets = months.map((m) => ({ month: m, revenue: 0, bookings: 0 }));
-
-      reservations.forEach((r) => {
-        const d = new Date(r.start_time);
-        if (d.getFullYear() === currentYear) {
-          const mIdx = d.getMonth();
-          if (mIdx >= 0 && mIdx < 12) {
-            monthlyBuckets[mIdx].bookings += 1;
-            if (r.status === "completed") {
-              monthlyBuckets[mIdx].revenue += parsePrice(r.total_price);
-            }
-          }
-        }
-      });
-
-      const todayGrowth = getTodayGrowth(reservations, now);
-      const completedGrowth = getCompletedGrowth(reservations, now);
-      const pendingGrowth = "—";
-      const clientsGrowth = getClientsGrowth(clients, now);
-
-      setData({
-        todayAppointmentsCount,
-        completedCount,
-        cancelledCount,
-        pendingCount: allPending.length,
-        futurePendingCount: futurePending.length,
-        overduePendingCount: overduePending.length,
-        totalClientsCount: clients.length,
-        revenueThisMonth,
-        todayGrowth,
-        completedGrowth,
-        pendingGrowth,
-        clientsGrowth,
+      const stats: DashboardStats = {
+        todayAppointmentsCount: summaryRes.today_reservations_count,
+        completedCount: summaryRes.counts_by_status.completed,
+        cancelledCount: summaryRes.counts_by_status.cancelled,
+        pendingCount: summaryRes.counts_by_status.pending,
+        futurePendingCount: summaryRes.upcoming_count,
+        overduePendingCount: 0,
+        totalClientsCount: summaryRes.total_clients,
+        totalReservationsCount: summaryRes.total_reservations,
+        revenueThisMonth: summaryRes.revenue,
+        revenue: summaryRes.revenue,
         todaySchedule,
-        upcomingPendingShortlist,
-        allRecentReservations,
-        allReservations: reservations,
-        recentClients,
-        allClients: clients,
-        totalReservationsCount: reservations.length,
-        topService,
-        monthlyTrend: monthlyBuckets,
-      });
+        allRecentReservations: todaySchedule,
+        allReservations: todaySchedule,
+        summary: summaryRes,
+      };
+
+      setData(stats);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard data. Please check your connection.");
-      setData(null);
+      if (currentRequestId === requestIdRef.current) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load dashboard data. Please check your connection."
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch dashboard metrics on hook initialization
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch dashboard data on initial hook mount
     fetchData();
+
+    const handleFocus = () => {
+      fetchData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [fetchData]);
 
   return {
     isLoading,
     error,
     data,
+    summary: data?.summary ?? null,
+    todaySchedule: data?.todaySchedule ?? [],
     refetch: fetchData,
   };
 }

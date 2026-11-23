@@ -2,16 +2,20 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, SlidersHorizontal, Tag } from "lucide-react";
+import { Search, SlidersHorizontal, Tag, Calendar } from "lucide-react";
 import { Reservation } from "@/types";
 import { formatCurrency } from "@/lib/currency";
 import { formatShortDateTime24 } from "@/lib/dates";
 
 interface TransactionsTableProps {
   reservations?: Reservation[];
+  isLoading?: boolean;
 }
 
-export function TransactionsTable({ reservations }: TransactionsTableProps) {
+export function TransactionsTable({
+  reservations,
+  isLoading = false,
+}: TransactionsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredBookings = useMemo(() => {
@@ -26,14 +30,14 @@ export function TransactionsTable({ reservations }: TransactionsTableProps) {
   }, [reservations, searchQuery]);
 
   return (
-    <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-[#EAE4F2] shadow-xs space-y-5">
+    <div className="w-full bg-white rounded-3xl p-6 border border-[#EAE4F2] shadow-xs space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-[#33283D]">Last transaction</h3>
-          <p className="text-xs text-[#7A6F86]">Recent appointments and customer payments</p>
+          <h3 className="text-base sm:text-lg font-bold text-[#33283D]">Today&apos;s appointments</h3>
+          <p className="text-xs text-[#7A6F86]">Appointments scheduled for today</p>
         </div>
 
-        {/* Search Input matching reference design */}
+        {/* Search & Navigation Link */}
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-[#7A6F86] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -41,7 +45,7 @@ export function TransactionsTable({ reservations }: TransactionsTableProps) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search"
+              placeholder="Search client or service"
               className="pl-8 pr-3 py-1.5 bg-[#FAF8FC] border border-[#EAE4F2] rounded-xl text-xs text-[#33283D] placeholder-[#7A6F86] focus:outline-none focus:border-[#7455A4] focus:ring-1 focus:ring-[#7455A4] w-36 sm:w-48 transition-all"
             />
           </div>
@@ -61,17 +65,48 @@ export function TransactionsTable({ reservations }: TransactionsTableProps) {
           <thead>
             <tr className="text-[11px] font-semibold text-[#7A6F86] border-b border-[#EAE4F2] pb-2">
               <th className="pb-3 font-semibold pl-2">Order ID</th>
-              <th className="pb-3 font-semibold">Client & Service</th>
-              <th className="pb-3 font-semibold">Date</th>
+              <th className="pb-3 font-semibold">Client &amp; Service</th>
+              <th className="pb-3 font-semibold">Time</th>
               <th className="pb-3 font-semibold">Price</th>
               <th className="pb-3 font-semibold text-right pr-2">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#FAF8FC]">
-            {filteredBookings.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="py-3.5 pl-2">
+                    <div className="h-4 w-16 bg-gray-200 rounded" />
+                  </td>
+                  <td className="py-3.5">
+                    <div className="h-4 w-32 bg-gray-200 rounded mb-1" />
+                    <div className="h-3 w-20 bg-gray-100 rounded" />
+                  </td>
+                  <td className="py-3.5">
+                    <div className="h-4 w-20 bg-gray-200 rounded" />
+                  </td>
+                  <td className="py-3.5">
+                    <div className="h-4 w-14 bg-gray-200 rounded" />
+                  </td>
+                  <td className="py-3.5 text-right pr-2">
+                    <div className="h-6 w-20 bg-gray-200 rounded-full inline-block" />
+                  </td>
+                </tr>
+              ))
+            ) : filteredBookings.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-xs text-[#7A6F86]">
-                  No recent appointments found.
+                <td colSpan={5} className="py-10 text-center text-xs text-[#7A6F86]">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <Calendar className="w-7 h-7 text-[#C9B8E2]" />
+                    <p className="font-semibold text-[#33283D]">
+                      {searchQuery ? "No appointments match your search." : "No appointments scheduled for today."}
+                    </p>
+                    {!searchQuery && (
+                      <p className="text-[11px] text-[#7A6F86]">
+                        New appointments created for today will appear here.
+                      </p>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -108,7 +143,7 @@ export function TransactionsTable({ reservations }: TransactionsTableProps) {
                       </Link>
                     </td>
 
-                    {/* Date */}
+                    {/* Time / Date */}
                     <td className="py-3.5 text-[#7A6F86] whitespace-nowrap">
                       {formattedDate}
                     </td>
