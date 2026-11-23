@@ -82,8 +82,7 @@ function ReservationsContent() {
 
   // View mode switcher: list vs calendar
   const [activeView, setActiveView] = useState<"list" | "calendar">("list");
-  const [calendarReservations, setCalendarReservations] = useState<Reservation[]>([]);
-  const [isCalendarLoading, setIsCalendarLoading] = useState(false);
+  const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
 
   // Paginated list hook for reservations list view
   const {
@@ -128,30 +127,10 @@ function ReservationsContent() {
     }
   }, []);
 
-  // Fetch full unpaginated reservations when calendar view is opened
-  const fetchCalendarData = useCallback(async () => {
-    try {
-      setIsCalendarLoading(true);
-      const data = await apiFetch<Reservation[]>("/reservations");
-      setCalendarReservations(data);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to load calendar events.");
-    } finally {
-      setIsCalendarLoading(false);
-    }
-  }, [toast]);
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch service and therapist metadata for filters
     fetchMetadata();
   }, [fetchMetadata]);
-
-  useEffect(() => {
-    if (activeView === "calendar") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Load calendar events when calendar view is opened
-      fetchCalendarData();
-    }
-  }, [activeView, fetchCalendarData]);
 
   // Action states
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -179,7 +158,7 @@ function ReservationsContent() {
       );
       toast.success(`Reservation marked as ${RESERVATION_STATUSES[newStatus].label}.`);
       refresh();
-      if (activeView === "calendar") fetchCalendarData();
+      setCalendarRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update reservation status.");
     } finally {
@@ -200,7 +179,7 @@ function ReservationsContent() {
       setCancelTarget(null);
       toast.success("Reservation cancelled.");
       refresh();
-      if (activeView === "calendar") fetchCalendarData();
+      setCalendarRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel reservation.");
     } finally {
@@ -222,7 +201,7 @@ function ReservationsContent() {
       setDeleteTarget(null);
       toast.success(response.message || "Reservation deleted successfully.");
       refresh();
-      if (activeView === "calendar") fetchCalendarData();
+      setCalendarRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete reservation.");
     } finally {
@@ -249,7 +228,7 @@ function ReservationsContent() {
 
   const handleReservationSaved = () => {
     refresh();
-    if (activeView === "calendar") fetchCalendarData();
+    setCalendarRefreshKey((k) => k + 1);
   };
 
   // Clear all filters handler
@@ -340,27 +319,18 @@ function ReservationsContent() {
 
       {/* Main Content Area */}
       {activeView === "calendar" ? (
-        isCalendarLoading ? (
-          <div className="flex justify-center items-center py-24 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
-            <div className="flex flex-col items-center gap-2">
-              <Spinner className="w-8 h-8 text-[#7455A4]" />
-              <span className="text-xs text-[#7A6F86] font-medium">Loading calendar schedule...</span>
-            </div>
-          </div>
-        ) : (
-          <CalendarView
-            reservations={calendarReservations}
-            therapists={therapists}
-            searchQuery={searchParam}
-            statusFilter={statusParam}
-            onSlotClick={(timeStr) => openCreateModal(timeStr)}
-            onStatusChange={handleStatusChange}
-            onCancelClick={(res) => setCancelTarget(res)}
-            onEditClick={openEditModal}
-            onDeleteClick={(res) => setDeleteTarget(res)}
-            updatingId={updatingId}
-          />
-        )
+        <CalendarView
+          therapists={therapists}
+          searchQuery={searchParam}
+          statusFilter={statusParam}
+          onSlotClick={(timeStr) => openCreateModal(timeStr)}
+          onStatusChange={handleStatusChange}
+          onCancelClick={(res) => setCancelTarget(res)}
+          onEditClick={openEditModal}
+          onDeleteClick={(res) => setDeleteTarget(res)}
+          updatingId={updatingId}
+          refreshKey={calendarRefreshKey}
+        />
       ) : (
         <>
           {/* Filters Bar */}

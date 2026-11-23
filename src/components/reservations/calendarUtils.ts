@@ -1,4 +1,5 @@
 import { Reservation } from "@/types";
+import { parseNaiveDateTime } from "@/lib/dates";
 
 export const START_HOUR = 7;
 export const END_HOUR = 22;
@@ -94,6 +95,54 @@ export function formatTimeDisplay(date: Date): string {
 }
 
 /**
+ * Format Date as naive local date string "YYYY-MM-DD"
+ */
+export function toNaiveDateString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Returns visible date range for a given date and view mode.
+ * - "day": 1 day (start = date, end = date)
+ * - "week": 7 days (Monday through Sunday)
+ * - "month": exactly 42 days (6 weeks) starting from the leading Monday of the month
+ */
+export function getVisibleDateRange(
+  date: Date,
+  viewMode: "day" | "week" | "month"
+): {
+  startDate: Date;
+  endDate: Date;
+  fromStr: string;
+  toStr: string;
+} {
+  let startDate: Date;
+  let endDate: Date;
+
+  if (viewMode === "day") {
+    startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  } else if (viewMode === "week") {
+    startDate = getStartOfWeek(date);
+    endDate = addDays(startDate, 6);
+  } else {
+    // Month view: start from leading Monday of month
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    startDate = getStartOfWeek(firstDayOfMonth);
+    // 42 days inclusive (6 weeks) to stay within backend 42-day limit
+    endDate = addDays(startDate, 41);
+  }
+
+  return {
+    startDate,
+    endDate,
+    fromStr: toNaiveDateString(startDate),
+    toStr: toNaiveDateString(endDate),
+  };
+}
+
+/**
  * Convert Date to YYYY-MM-DDTHH:mm local ISO string for datetime input.
  */
 export function toLocalDatetimeString(date: Date): string {
@@ -114,8 +163,8 @@ export function getEventSegmentForDay(
   reservation: Reservation,
   dayDate: Date
 ): EventSegment | null {
-  const resStart = new Date(reservation.start_time);
-  const resEnd = new Date(reservation.end_time);
+  const resStart = parseNaiveDateTime(reservation.start_time);
+  const resEnd = parseNaiveDateTime(reservation.end_time);
 
   // Day boundaries from 00:00 to 23:59:59.999
   const startOfDay = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 0, 0, 0, 0);

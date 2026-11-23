@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { 
   Reservation, 
   ReservationStatus, 
@@ -20,41 +20,48 @@ import {
   formatTimeDisplay, 
   toLocalDatetimeString, 
   getEventSegmentForDay, 
-  computeOverlapLayout
+  computeOverlapLayout,
+  getVisibleDateRange
 } from "./calendarUtils";
 import { EventDetailPanel } from "./EventDetailPanel";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  AlertCircle,
+  RotateCcw
 } from "lucide-react";
+import { apiFetch, ApiError } from "@/lib/api";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface CalendarViewProps {
-  reservations: Reservation[];
+  reservations?: Reservation[];
   therapists?: Therapist[];
-  searchQuery: string;
-  statusFilter: "all" | ReservationStatus;
+  searchQuery?: string;
+  statusFilter?: "all" | ReservationStatus;
   onSlotClick: (initialStartTime: string) => void;
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => Promise<void>;
   onCancelClick: (reservation: Reservation) => void;
   onEditClick: (reservation: Reservation) => void;
   onDeleteClick: (reservation: Reservation) => void;
   updatingId: number | null;
+  refreshKey?: number;
 }
 
 type ViewMode = "day" | "week";
 
 export function CalendarView({
-  reservations,
+  reservations: externalReservations,
   therapists = [],
-  searchQuery,
-  statusFilter,
+  searchQuery = "",
+  statusFilter = "all",
   onSlotClick,
   onStatusChange,
   onCancelClick,
   onEditClick,
   onDeleteClick,
   updatingId,
+  refreshKey = 0,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("week");
@@ -62,6 +69,52 @@ export function CalendarView({
   const [therapistFilter, setTherapistFilter] = useState<string>("all");
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
+
+  // Internal range-fetched reservations for visible week/month
+  const [fetchedReservations, setFetchedReservations] = useState<Reservation[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+
+  // Range fetch for visible week/month (staying within backend 42-day limit)
+  const fetchCalendarReservations = useCallback(async () => {
+    const range = getVisibleDateRange(currentDate, viewMode);
+    const currentRequestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await apiFetch<Reservation[]>(
+        `/reservations?from=${range.fromStr}&to=${range.toStr}`
+      );
+      if (currentRequestId === requestIdRef.current) {
+        setFetchedReservations(Array.isArray(data) ? data : []);
+        setIsLoading(false);
+      }
+    } catch (err: unknown) {
+      if (currentRequestId === requestIdRef.current) {
+        if (err instanceof ApiError && err.errors?.date) {
+          setError(err.errors.date[0]);
+        } else {
+          setError(err instanceof Error ? err.message : "Failed to load calendar appointments.");
+        }
+        setIsLoading(false);
+      }
+    }
+  }, [currentDate, viewMode]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch calendar reservations on visible range navigation or refresh trigger
+    fetchCalendarReservations();
+  }, [fetchCalendarReservations, refreshKey]);
+
+  // Use externalReservations if explicitly provided, otherwise use internal range-fetched reservations
+  const activeReservations = useMemo(() => {
+    if (externalReservations !== undefined) {
+      return externalReservations;
+    }
+    return fetchedReservations;
+  }, [fetchedReservations, externalReservations]);
 
   // Aggregate therapists from props + any inactive therapists appearing on loaded reservations
   const filterTherapistsList = useMemo(() => {
@@ -73,7 +126,7 @@ export function CalendarView({
     });
 
     // Add any therapists on loaded reservations (e.g. inactive)
-    reservations.forEach((r) => {
+    activeReservations.forEach((r) => {
       if (r.therapist && !map.has(r.therapist.id)) {
         map.set(r.therapist.id, {
           id: r.therapist.id,
@@ -86,7 +139,7 @@ export function CalendarView({
     return Array.from(map.values()).sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
     );
-  }, [therapists, reservations]);
+  }, [therapists, activeReservations]);
 
   // Default to day view on small mobile screens (< 768px)
   useEffect(() => {
@@ -105,7 +158,7 @@ export function CalendarView({
   // Sync selectedReservation when the underlying reservations prop changes
   useEffect(() => {
     if (selectedReservation) {
-      const updated = reservations.find((r) => r.id === selectedReservation.id);
+      const updated = activeReservations.find((r) => r.id === selectedReservation.id);
       if (updated) {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize selected reservation with updated reservations prop
         setSelectedReservation(updated);
@@ -113,7 +166,7 @@ export function CalendarView({
         setSelectedReservation(null);
       }
     }
-  }, [reservations, selectedReservation]);
+  }, [activeReservations, selectedReservation]);
 
   // If statusFilter is "cancelled", show cancelled regardless of toggle
   const effectiveShowCancelled = showCancelled || statusFilter === "cancelled";
@@ -122,7 +175,7 @@ export function CalendarView({
   const filteredReservations = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
-    return reservations.filter((res) => {
+    return activeReservations.filter((res) => {
       // 1. Status Filter
       if (statusFilter !== "all" && res.status !== statusFilter) {
         return false;
@@ -159,7 +212,7 @@ export function CalendarView({
 
       return true;
     });
-  }, [reservations, searchQuery, statusFilter, effectiveShowCancelled, therapistFilter]);
+  }, [activeReservations, searchQuery, statusFilter, effectiveShowCancelled, therapistFilter]);
 
   // Days in view
   const daysInView = useMemo(() => {
@@ -213,10 +266,15 @@ export function CalendarView({
     onSlotClick(toLocalDatetimeString(targetDate));
   };
 
-  // Status change wrapper updating selectedReservation in place
+  // Status change wrapper updating selectedReservation in place and refreshing
   const handleStatusChangeInternal = async (res: Reservation, newStatus: ReservationStatus) => {
-    await onStatusChange(res, newStatus);
-    setSelectedReservation((prev) => (prev?.id === res.id ? { ...prev, status: newStatus } : prev));
+    try {
+      await onStatusChange(res, newStatus);
+      setSelectedReservation((prev) => (prev?.id === res.id ? { ...prev, status: newStatus } : prev));
+      fetchCalendarReservations();
+    } catch {
+      // Handled by onStatusChange / toast
+    }
   };
 
   // Hour numbers for grid [7, 8, ..., 22]
@@ -256,6 +314,7 @@ export function CalendarView({
           <h2 className="text-base font-extrabold text-[#33283D] flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-[#7455A4]" />
             <span>{headerTitle}</span>
+            {isLoading && <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />}
           </h2>
         </div>
 
@@ -319,8 +378,24 @@ export function CalendarView({
         </div>
       </div>
 
-      {/* Calendar Grid Container (Horizontally Scrollable in Week View) */}
-      <div className="overflow-x-auto relative flex-1">
+      {/* Error State with Retry Button instead of empty calendar */}
+      {error ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center m-4 bg-red-50 border border-red-200 rounded-2xl shadow-xs">
+          <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+          <h3 className="text-sm font-bold text-red-800">Failed to load calendar appointments</h3>
+          <p className="text-xs text-red-600 mt-1 max-w-md leading-relaxed">{error}</p>
+          <button
+            type="button"
+            onClick={() => fetchCalendarReservations()}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
+      ) : (
+        /* Calendar Grid Container (Horizontally Scrollable in Week View) */
+        <div className="overflow-x-auto relative flex-1">
         <div
           className={`min-w-full flex flex-col ${
             viewMode === "week" ? "min-w-[780px]" : "min-w-[320px]"
@@ -534,6 +609,7 @@ export function CalendarView({
           </div>
         </div>
       </div>
+      )}
 
       {/* Selected Event Detail Modal / Panel */}
       {selectedReservation && (

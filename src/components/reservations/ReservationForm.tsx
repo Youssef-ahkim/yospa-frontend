@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Client, Service, Therapist, Reservation, ReservationStatus, Paginated } from "@/types";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { FormField } from "@/components/ui/FormField";
@@ -76,7 +76,6 @@ export function ReservationForm({
   initial = null,
   initialStartTime,
   services,
-  existingReservations = [],
   onSuccess,
 }: ReservationFormProps) {
   const toast = useToast();
@@ -116,16 +115,61 @@ export function ReservationForm({
     return services;
   }, [services, initial]);
 
-  // Non-blocking overlap conflict detection (generic + same-therapist)
+  // Server query results for day's reservations (early-warning overlap check)
+  const [dayReservations, setDayReservations] = useState<Reservation[]>([]);
+  const overlapReqRef = useRef(0);
+
+  // Debounced server query: GET /reservations?from=<day>&to=<day>&therapist_id=<id>
+  useEffect(() => {
+    if (!open || !formData.start_time) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset day reservations when modal closed or start time unset
+      setDayReservations([]);
+      return;
+    }
+
+    const day = formData.start_time.slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      setDayReservations([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const currentReq = ++overlapReqRef.current;
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.set("from", day);
+        queryParams.set("to", day);
+        if (formData.therapist_id) {
+          queryParams.set("therapist_id", formData.therapist_id);
+        }
+
+        const data = await apiFetch<Reservation[]>(`/reservations?${queryParams.toString()}`);
+        if (currentReq === overlapReqRef.current) {
+          setDayReservations(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        // If the query fails, show nothing and let the backend decide
+        if (currentReq === overlapReqRef.current) {
+          setDayReservations([]);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [open, formData.start_time, formData.therapist_id]);
+
+  // Non-blocking overlap conflict detection (excluding the reservation being edited)
   const overlapCheck = useMemo(() => {
     return checkReservationOverlap({
       startTime: formData.start_time,
       endTime: formData.end_time,
       excludeReservationId: initial?.id,
       targetTherapistId: formData.therapist_id ? Number(formData.therapist_id) : null,
-      reservations: existingReservations,
+      reservations: dayReservations,
     });
-  }, [existingReservations, formData.start_time, formData.end_time, formData.therapist_id, initial?.id]);
+  }, [dayReservations, formData.start_time, formData.end_time, formData.therapist_id, initial?.id]);
 
   const formatConflictTime = (startStr: string, endStr: string) => {
     const s = parseNaiveDateTime(startStr);
@@ -327,12 +371,17 @@ export function ReservationForm({
       if (err instanceof ApiError && err.errors) {
         const errors = err.errors;
         setFieldErrors(errors);
-        const knownFields = ["client_id", "service_id", "start_time", "end_time", "total_price", "notes"];
-        const nonFieldKeys = Object.keys(errors).filter((k) => !knownFields.includes(k));
-        if (nonFieldKeys.length > 0) {
-          toast.error(errors[nonFieldKeys[0]][0] || err.message);
+        if (errors.therapist_id) {
+          toast.error(errors.therapist_id[0]);
+        } else if (errors.start_time) {
+          toast.error(errors.start_time[0]);
+        } else if (errors.end_time) {
+          toast.error(errors.end_time[0]);
+        } else if (errors.date) {
+          toast.error(errors.date[0]);
         } else {
-          toast.error("Please check the form inputs.");
+          const firstKey = Object.keys(errors)[0];
+          toast.error(errors[firstKey]?.[0] || err.message);
         }
       } else {
         toast.error(err instanceof Error ? err.message : (isEdit ? "Failed to update reservation." : "Failed to create reservation."));
@@ -499,7 +548,7 @@ export function ReservationForm({
 
         {/* Date & Time Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label="Start Date & Time" required error={fieldErrors.start_time?.[0]}>
+          <FormField label="Start Date & Time" required error={fieldErrors.start_time?.[0] || fieldErrors.date?.[0]}>
             <input
               type="datetime-local"
               required
