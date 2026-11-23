@@ -84,6 +84,24 @@ function ReservationsContent() {
   const [activeView, setActiveView] = useState<"list" | "calendar">("list");
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
 
+  // Memoized query filters to maintain stable identity
+  const filters = useMemo(
+    () => ({
+      status: statusParam !== "all" ? statusParam : undefined,
+      therapist_id: therapistIdParam !== "all" ? therapistIdParam : undefined,
+      from: isDateRangeValid && fromParam ? fromParam : undefined,
+      to: isDateRangeValid && toParam ? toParam : undefined,
+    }),
+    [statusParam, therapistIdParam, isDateRangeValid, fromParam, toParam]
+  );
+
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      updateQuery({ page: newPage });
+    },
+    [updateQuery]
+  );
+
   // Paginated list hook for reservations list view
   const {
     items: reservations,
@@ -102,16 +120,11 @@ function ReservationsContent() {
     page,
     perPage,
     search: searchParam,
-    filters: {
-      status: statusParam !== "all" ? statusParam : undefined,
-      therapist_id: therapistIdParam !== "all" ? therapistIdParam : undefined,
-      from: isDateRangeValid && fromParam ? fromParam : undefined,
-      to: isDateRangeValid && toParam ? toParam : undefined,
-    },
+    filters,
     sort: "start_time",
     direction: directionParam,
     enabled: activeView === "list",
-    onPageChange: (p) => updateQuery({ page: p }),
+    onPageChange: handlePageChange,
   });
 
   // Load services and therapists for dropdowns
@@ -490,7 +503,7 @@ function ReservationsContent() {
                 perPage={perPage}
                 from={pageFrom}
                 to={pageTo}
-                onPageChange={(newPage) => updateQuery({ page: newPage })}
+                onPageChange={handlePageChange}
                 onPerPageChange={(newPerPage) => updateQuery({ per_page: newPerPage, page: 1 })}
                 disabled={isFetching}
               />

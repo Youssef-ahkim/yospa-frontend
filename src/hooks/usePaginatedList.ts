@@ -80,11 +80,29 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
   const requestIdRef = useRef(0);
   const lastRecoveredPageRef = useRef<number | null>(null);
 
-  // Stable filters representation for dependency checking
-  const filtersKey = useMemo(() => {
-    if (!filters) return "";
-    return JSON.stringify(filters);
-  }, [filters]);
+  // Keep callback and router references stable so changing function references do not trigger refetches
+  const onPageChangeRef = useRef(onPageChange);
+  useEffect(() => {
+    onPageChangeRef.current = onPageChange;
+  });
+
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  });
+
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  });
+
+  const searchParamsRef = useRef(searchParams);
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  });
+
+  // Stable filters string representation for dependency checking (avoiding object identity changes)
+  const filtersKey = filters ? JSON.stringify(filters) : "";
 
   const fetchData = useCallback(async () => {
     if (!enabled) return;
@@ -138,15 +156,15 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
             lastRecoveredPageRef.current = validPage;
 
             // Keep URL query in sync
-            const nextParams = new URLSearchParams(searchParams?.toString() || "");
+            const nextParams = new URLSearchParams(searchParamsRef.current?.toString() || "");
             if (validPage <= 1) {
               nextParams.delete("page");
             } else {
               nextParams.set("page", String(validPage));
             }
             const nextQuery = nextParams.toString();
-            router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ""}`);
-            onPageChange?.(validPage);
+            routerRef.current.replace(`${pathnameRef.current}${nextQuery ? `?${nextQuery}` : ""}`);
+            onPageChangeRef.current?.(validPage);
 
             // Fetch target page immediately keeping current items visible (no empty flash)
             targetPage = validPage;
@@ -172,20 +190,16 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
       setIsLoading(false);
       setIsFetching(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filters content is tracked via primitive filtersKey string
   }, [
     enabled,
+    endpoint,
     page,
     perPage,
     debouncedSearch,
     sort,
     direction,
     filtersKey,
-    endpoint,
-    searchParams,
-    pathname,
-    router,
-    onPageChange,
   ]);
 
   useEffect(() => {
