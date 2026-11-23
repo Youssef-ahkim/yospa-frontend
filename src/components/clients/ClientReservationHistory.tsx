@@ -8,6 +8,7 @@ import {
 } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
+import { Pagination } from "@/components/ui/Pagination";
 import { formatCurrency } from "@/lib/currency";
 import {
   Calendar,
@@ -23,12 +24,24 @@ interface ClientReservationHistoryProps {
   reservations: Reservation[];
   updatingResId: number | null;
   onStatusChange: (reservation: Reservation, newStatus: ReservationStatus) => void;
+  pagination?: {
+    currentPage: number;
+    lastPage: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    perPage: number;
+    onPageChange: (page: number) => void;
+    onPerPageChange?: (perPage: number) => void;
+    isLoading?: boolean;
+  };
 }
 
 export function ClientReservationHistory({
   reservations,
   updatingResId,
   onStatusChange,
+  pagination,
 }: ClientReservationHistoryProps) {
   return (
     <div className="space-y-4">
@@ -252,6 +265,22 @@ export function ClientReservationHistory({
               );
             })}
           </div>
+
+          {pagination && (
+            <div className="bg-white border border-[#EAE4F2] rounded-2xl overflow-hidden shadow-xs">
+              <Pagination
+                currentPage={pagination.currentPage}
+                lastPage={pagination.lastPage}
+                total={pagination.total}
+                from={pagination.from}
+                to={pagination.to}
+                perPage={pagination.perPage}
+                onPageChange={pagination.onPageChange}
+                onPerPageChange={pagination.onPerPageChange}
+                disabled={pagination.isLoading}
+              />
+            </div>
+          )}
         </>
       )}
     </div>

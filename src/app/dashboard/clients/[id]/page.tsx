@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Client, Reservation, ReservationStatus } from "@/types";
 import { usePermissions } from "@/lib/permissions";
 import { useToast } from "@/context/ToastContext";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Spinner } from "@/components/ui/Spinner";
 import { ClientReservationHistory } from "@/components/clients/ClientReservationHistory";
@@ -36,15 +37,57 @@ export default function ClientDetailPage() {
 function ClientDetailContent() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const clientId = Number(params?.id);
 
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const perPage = Number(searchParams.get("per_page")) || 25;
+
   const [client, setClient] = useState<Client | null>(null);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { canDelete } = usePermissions();
+
+  // Synchronize query updates to URL
+  const updateQuery = useCallback(
+    (updates: Record<string, string | number | null | undefined>) => {
+      const p = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(updates)) {
+        if (val === null || val === undefined || val === "") {
+          p.delete(key);
+        } else {
+          p.set(key, String(val));
+        }
+      }
+      router.push(`${pathname}?${p.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  // Paginated reservations for this client
+  const {
+    items: reservations,
+    total: resTotal,
+    currentPage,
+    lastPage,
+    from,
+    to,
+    isFetching: isResFetching,
+    refresh: refreshReservations,
+  } = usePaginatedList<Reservation>({
+    endpoint: "/reservations",
+    page,
+    perPage,
+    filters: {
+      client_id: clientId,
+    },
+    sort: "start_time",
+    direction: "desc",
+    enabled: Boolean(clientId && !isNaN(clientId)),
+  });
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -79,19 +122,8 @@ function ClientDetailContent() {
         setIsLoading(true);
         setError(null);
 
-        const [clientData, allReservations] = await Promise.all([
-          apiFetch<Client>(`/clients/${clientId}`),
-          apiFetch<Reservation[]>("/reservations").catch(() => []),
-        ]);
-
+        const clientData = await apiFetch<Client>(`/clients/${clientId}`);
         setClient(clientData);
-
-        const matchingReservations = allReservations.filter((res) => {
-          const resClientId = res.client?.id ?? res.client_id;
-          return resClientId !== undefined && Number(resClientId) === clientId;
-        });
-
-        setReservations(matchingReservations);
       } catch (err: unknown) {
         if (err instanceof ApiError && err.status === 404) {
           setError("Client not found or you do not have permission to view this client.");
@@ -180,7 +212,7 @@ function ClientDetailContent() {
     setUpdatingResId(reservation.id);
 
     try {
-      const response = await apiFetch<{ message: string; reservation: Reservation }>(
+      await apiFetch<{ message: string; reservation: Reservation }>(
         `/reservations/${reservation.id}`,
         {
           method: "PATCH",
@@ -188,11 +220,8 @@ function ClientDetailContent() {
         }
       );
 
-      const updated = response.reservation || { ...reservation, status: newStatus };
-      setReservations((prev) =>
-        prev.map((item) => (item.id === reservation.id ? updated : item))
-      );
       toast.success(`Reservation marked as ${newStatus}.`);
+      refreshReservations();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update reservation status.");
     } finally {
@@ -207,7 +236,7 @@ function ClientDetailContent() {
     setUpdatingResId(cancelResTarget.id);
 
     try {
-      const response = await apiFetch<{ message: string; reservation: Reservation }>(
+      await apiFetch<{ message: string; reservation: Reservation }>(
         `/reservations/${cancelResTarget.id}`,
         {
           method: "PATCH",
@@ -215,12 +244,9 @@ function ClientDetailContent() {
         }
       );
 
-      const updated = response.reservation || { ...cancelResTarget, status: "cancelled" };
-      setReservations((prev) =>
-        prev.map((item) => (item.id === cancelResTarget.id ? updated : item))
-      );
       setCancelResTarget(null);
       toast.success("Reservation cancelled.");
+      refreshReservations();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel reservation.");
     } finally {
@@ -314,11 +340,22 @@ function ClientDetailContent() {
         totalSpend={totalSpend}
       />
 
-      {/* Reservation History Section */}
+      {/* Reservation History Section with Server-Side Pagination */}
       <ClientReservationHistory
         reservations={reservations}
         updatingResId={updatingResId}
         onStatusChange={handleStatusChange}
+        pagination={{
+          currentPage,
+          lastPage,
+          total: resTotal,
+          from,
+          to,
+          perPage,
+          onPageChange: (p) => updateQuery({ page: p }),
+          onPerPageChange: (pp) => updateQuery({ per_page: pp, page: 1 }),
+          isLoading: isResFetching,
+        }}
       />
 
       {/* Edit Client Slide-over */}
@@ -343,49 +380,23 @@ function ClientDetailContent() {
         isConfirming={isDeleting}
       >
         <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-          Are you sure you want to delete this client?
+          Are you sure you want to delete this client? If the client has existing appointments, deletion may be blocked.
         </p>
-        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 leading-relaxed">
-          {reservations.length === 0 ? (
-            <>
-              <strong>Warning:</strong> Deleting this client will permanently remove their profile and all of their associated appointments/reservations (cascade deletion).
-            </>
-          ) : (
-            <>
-              <strong>Warning:</strong> Deleting this client will permanently remove their profile and {reservations.length === 1 ? "1 reservation" : `${reservations.length} reservations`} (cascade deletion).
-            </>
-          )}
-        </div>
       </ConfirmDialog>
 
-      {/* Reservation Cancellation Confirmation Modal */}
+      {/* Cancel Reservation Confirmation Modal */}
       <ConfirmDialog
-        open={!!cancelResTarget}
+        open={Boolean(cancelResTarget)}
         onClose={() => setCancelResTarget(null)}
         onConfirm={handleConfirmCancelRes}
-        title="Cancel Reservation?"
-        confirmLabel="Cancel Reservation"
+        title="Cancel Appointment?"
+        confirmLabel="Yes, Cancel Appointment"
         confirmLoadingLabel="Cancelling..."
-        cancelLabel="Keep Reservation"
         isConfirming={isCancellingRes}
       >
-        {cancelResTarget && (
-          <>
-            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-              Are you sure you want to cancel the appointment for{" "}
-              <strong className="text-gray-900">{client.full_name}</strong>?
-            </p>
-            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs space-y-1 text-gray-600">
-              <p>
-                <strong>Service:</strong> {cancelResTarget.service?.name || "General Service"}
-              </p>
-              <p>
-                <strong>Date:</strong>{" "}
-                {cancelResTarget.start_time ? new Date(cancelResTarget.start_time).toLocaleString() : "N/A"}
-              </p>
-            </div>
-          </>
-        )}
+        <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+          Are you sure you want to cancel this appointment? The client will be notified if automatic notifications are enabled.
+        </p>
       </ConfirmDialog>
     </div>
   );

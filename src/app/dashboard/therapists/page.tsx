@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Therapist } from "@/types";
 import { usePermissions } from "@/lib/permissions";
 import { useToast } from "@/context/ToastContext";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { TherapistFormSlideOver } from "@/components/therapists/TherapistFormSlideOver";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination } from "@/components/ui/Pagination";
+import { Spinner } from "@/components/ui/Spinner";
 import {
   Plus,
   Search,
@@ -22,18 +26,80 @@ import {
   FileText,
 } from "lucide-react";
 
-type StatusFilter = "all" | "active" | "inactive";
-
 export default function TherapistsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center py-24">
+          <Spinner className="w-8 h-8 text-[#7455A4]" />
+        </div>
+      }
+    >
+      <TherapistsContent />
+    </Suspense>
+  );
+}
+
+function TherapistsContent() {
   const toast = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { canManageTherapists } = usePermissions();
 
-  const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Read URL query parameters
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const perPage = Number(searchParams.get("per_page")) || 25;
+  const searchParam = searchParams.get("search") || "";
+  const showInactive = searchParams.get("all") === "1";
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // Local state for search input to allow smooth typing before URL update
+  const [searchInput, setSearchInput] = useState(searchParam);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync search input on URL searchParam navigation
+    setSearchInput(searchParam);
+  }, [searchParam]);
+
+  // Synchronize query updates to URL
+  const updateQuery = useCallback(
+    (updates: Record<string, string | number | null | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(updates)) {
+        if (val === null || val === undefined || val === "") {
+          params.delete(key);
+        } else {
+          params.set(key, String(val));
+        }
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  // Paginated list hook
+  const {
+    items: therapists,
+    total,
+    currentPage,
+    lastPage,
+    from,
+    to,
+    isLoading,
+    isFetching,
+    error,
+    refresh,
+    retry,
+  } = usePaginatedList<Therapist>({
+    endpoint: "/therapists",
+    page,
+    perPage,
+    search: searchParam,
+    filters: {
+      all: showInactive ? 1 : undefined,
+    },
+    sort: "name",
+    direction: "asc",
+  });
 
   // Track in-flight action locks by therapist ID
   const [inFlightIds, setInFlightIds] = useState<Record<number, boolean>>({});
@@ -49,58 +115,6 @@ export default function TherapistsPage() {
   const [deactivateTarget, setDeactivateTarget] = useState<Therapist | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
-  const fetchTherapists = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await apiFetch<Therapist[]>("/therapists?all=1");
-      setTherapists(
-        [...data].sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
-        )
-      );
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load therapists. Please check your connection.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch therapists on initial page mount
-    fetchTherapists();
-  }, []);
-
-  // Filtered therapists based on search query and status tab
-  const filteredTherapists = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return therapists.filter((therapist) => {
-      const matchesSearch =
-        !q ||
-        therapist.name.toLowerCase().includes(q) ||
-        (therapist.email && therapist.email.toLowerCase().includes(q)) ||
-        (therapist.phone && therapist.phone.includes(q)) ||
-        (therapist.notes && therapist.notes.toLowerCase().includes(q));
-
-      const isActive = therapist.is_active ?? true;
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && isActive) ||
-        (statusFilter === "inactive" && !isActive);
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [therapists, searchQuery, statusFilter]);
-
-  // Counts for filter pills
-  const counts = useMemo(() => {
-    return {
-      all: therapists.length,
-      active: therapists.filter((t) => t.is_active ?? true).length,
-      inactive: therapists.filter((t) => !(t.is_active ?? true)).length,
-    };
-  }, [therapists]);
-
   const handleOpenCreate = () => {
     setEditingTherapist(null);
     setIsSlideOverOpen(true);
@@ -111,18 +125,8 @@ export default function TherapistsPage() {
     setIsSlideOverOpen(true);
   };
 
-  const handleSaveTherapist = (savedTherapist: Therapist, isEdit: boolean) => {
-    setTherapists((prev) => {
-      let nextList: Therapist[];
-      if (isEdit) {
-        nextList = prev.map((t) => (t.id === savedTherapist.id ? savedTherapist : t));
-      } else {
-        nextList = [savedTherapist, ...prev];
-      }
-      return [...nextList].sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
-      );
-    });
+  const handleSaveTherapist = () => {
+    refresh();
   };
 
   // Toggle active / inactive status via PATCH { is_active }
@@ -140,12 +144,11 @@ export default function TherapistsPage() {
         }
       );
 
-      const updated = response.therapist || { ...therapist, is_active: nextStatus };
-      setTherapists((prev) => prev.map((t) => (t.id === therapist.id ? updated : t)));
       toast.success(
         response.message ||
           `Therapist "${therapist.name}" is now ${nextStatus ? "active" : "inactive"}.`
       );
+      refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update therapist status.");
     } finally {
@@ -170,10 +173,9 @@ export default function TherapistsPage() {
         method: "DELETE",
       });
 
-      // Remove row only after DELETE succeeds
-      setTherapists((prev) => prev.filter((t) => t.id !== target.id));
       setDeleteTarget(null);
       toast.success(response.message || `Therapist "${target.name}" was deleted successfully.`);
+      refresh();
     } catch (err: unknown) {
       const apiErr = err instanceof ApiError ? err : null;
       if (apiErr?.status === 409) {
@@ -213,10 +215,9 @@ export default function TherapistsPage() {
         }
       );
 
-      const updated = response.therapist || { ...target, is_active: false };
-      setTherapists((prev) => prev.map((t) => (t.id === target.id ? updated : t)));
       toast.success(response.message || `Therapist "${target.name}" was deactivated.`);
       setDeactivateTarget(null);
+      refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to deactivate therapist.");
     } finally {
@@ -251,7 +252,7 @@ export default function TherapistsPage() {
         )}
       </div>
 
-      {/* Search and Status Filters */}
+      {/* Search and Show Inactive Toggle */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search Bar */}
         <div className="relative flex-1 max-w-md">
@@ -259,14 +260,21 @@ export default function TherapistsPage() {
           <input
             type="text"
             placeholder="Search therapists by name, phone, email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSearchInput(val);
+              updateQuery({ search: val || null, page: 1 });
+            }}
             className="w-full pl-10 pr-9 py-2.5 border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] text-sm bg-white shadow-xs hover:border-[#C9B8E2] text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
           />
-          {searchQuery && (
+          {searchInput && (
             <button
               type="button"
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchInput("");
+                updateQuery({ search: null, page: 1 });
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer"
               aria-label="Clear search"
             >
@@ -275,41 +283,16 @@ export default function TherapistsPage() {
           )}
         </div>
 
-        {/* Status Filter Tabs with Counts */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#FAF8FC] border border-[#EAE4F2] rounded-xl self-start sm:self-auto">
-          {(
-            [
-              { id: "all", label: "All", count: counts.all },
-              { id: "active", label: "Active", count: counts.active },
-              { id: "inactive", label: "Inactive", count: counts.inactive },
-            ] as const
-          ).map((tab) => {
-            const isActive = statusFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setStatusFilter(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isActive
-                    ? "bg-white text-[#7455A4] shadow-xs"
-                    : "text-[#7A6F86] hover:text-[#33283D] hover:bg-white/60"
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive
-                      ? "bg-[#F0EAF7] text-[#7455A4]"
-                      : "bg-[#EAE4F2]/70 text-[#7A6F86]"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Show Inactive Toggle */}
+        <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#7A6F86] hover:text-[#33283D] cursor-pointer select-none px-3.5 py-2.5 bg-white border border-[#EAE4F2] rounded-xl shadow-xs self-start sm:self-auto transition-colors">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => updateQuery({ all: e.target.checked ? 1 : null, page: 1 })}
+            className="w-4 h-4 rounded border-[#C9B8E2] text-[#7455A4] focus:ring-[#7455A4] cursor-pointer"
+          />
+          <span>Show inactive</span>
+        </label>
       </div>
 
       {/* Global Error Banner */}
@@ -322,7 +305,7 @@ export default function TherapistsPage() {
           </div>
           <button
             type="button"
-            onClick={fetchTherapists}
+            onClick={retry}
             className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-900 bg-red-100/80 hover:bg-red-200/80 px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex-shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -350,24 +333,24 @@ export default function TherapistsPage() {
             ))}
           </div>
         </div>
-      ) : filteredTherapists.length === 0 ? (
+      ) : therapists.length === 0 ? (
         <div className="text-center py-20 px-4 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs space-y-4">
           <div className="w-12 h-12 rounded-2xl bg-[#F0EAF7] border border-[#C9B8E2]/50 flex items-center justify-center mx-auto text-[#7455A4] shadow-xs">
             <UserCheck className="w-6 h-6" />
           </div>
           <div className="max-w-sm mx-auto space-y-1">
             <h3 className="text-base font-bold text-[#33283D]">
-              {searchQuery || statusFilter !== "all"
-                ? "No therapists match your filters"
+              {searchParam
+                ? "No therapists match your search"
                 : "No therapists registered yet"}
             </h3>
             <p className="text-xs text-[#7A6F86]">
-              {searchQuery || statusFilter !== "all"
-                ? "Try clearing your search query or selecting a different status filter."
+              {searchParam
+                ? "Try clearing your search query or enabling inactive therapists."
                 : "Add your first massage specialist or practitioner to start assigning appointments."}
             </p>
           </div>
-          {!searchQuery && statusFilter === "all" ? (
+          {!searchParam ? (
             canManageTherapists ? (
               <button
                 type="button"
@@ -382,12 +365,12 @@ export default function TherapistsPage() {
             <button
               type="button"
               onClick={() => {
-                setSearchQuery("");
-                setStatusFilter("all");
+                setSearchInput("");
+                updateQuery({ search: null, page: 1 });
               }}
               className="text-xs font-semibold text-[#7455A4] hover:underline cursor-pointer"
             >
-              Reset all filters
+              Reset search
             </button>
           )}
         </div>
@@ -406,7 +389,7 @@ export default function TherapistsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#FAF8FC] bg-white">
-                {filteredTherapists.map((therapist) => {
+                {therapists.map((therapist) => {
                   const isActive = therapist.is_active ?? true;
                   const isInactive = !isActive;
                   const isInFlight = Boolean(inFlightIds[therapist.id]);
@@ -456,7 +439,7 @@ export default function TherapistsPage() {
                         <div className="space-y-1 text-xs text-[#7A6F86]">
                           {therapist.phone ? (
                             <span className="flex items-center gap-1.5">
-                              <Phone className="w-3 h-3 text-[#9275BC]" />
+                              <Phone className="w-3.5 h-3.5 text-[#9275BC]" />
                               <span>{therapist.phone}</span>
                             </span>
                           ) : (
@@ -464,7 +447,7 @@ export default function TherapistsPage() {
                           )}
                           {therapist.email && (
                             <span className="flex items-center gap-1.5">
-                              <Mail className="w-3 h-3 text-[#9275BC]" />
+                              <Mail className="w-3.5 h-3.5 text-[#9275BC]" />
                               <span>{therapist.email}</span>
                             </span>
                           )}
@@ -554,7 +537,7 @@ export default function TherapistsPage() {
 
           {/* Mobile Cards List */}
           <div className="md:hidden divide-y divide-[#EAE4F2]">
-            {filteredTherapists.map((therapist) => {
+            {therapists.map((therapist) => {
               const isActive = therapist.is_active ?? true;
               const isInactive = !isActive;
               const isInFlight = Boolean(inFlightIds[therapist.id]);
@@ -586,7 +569,7 @@ export default function TherapistsPage() {
                         <div className="flex items-center gap-2 text-xs text-[#7A6F86] mt-0.5">
                           {therapist.phone ? (
                             <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-[#9275BC]" />
+                              <Phone className="w-3.5 h-3.5 text-[#9275BC]" />
                               {therapist.phone}
                             </span>
                           ) : (
@@ -614,7 +597,7 @@ export default function TherapistsPage() {
 
                   {therapist.notes && (
                     <div className="text-xs text-[#7A6F86] line-clamp-2 flex items-start gap-1.5 bg-[#FAF8FC] p-2 rounded-lg border border-[#EAE4F2]/60">
-                      <FileText className="w-3 h-3 text-[#9275BC] flex-shrink-0 mt-0.5" />
+                      <FileText className="w-3.5 h-3.5 text-[#9275BC] flex-shrink-0 mt-0.5" />
                       <span>{therapist.notes}</span>
                     </div>
                   )}
@@ -659,6 +642,19 @@ export default function TherapistsPage() {
               );
             })}
           </div>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            lastPage={lastPage}
+            total={total}
+            from={from}
+            to={to}
+            perPage={perPage}
+            onPageChange={(p) => updateQuery({ page: p })}
+            onPerPageChange={(pp) => updateQuery({ per_page: pp, page: 1 })}
+            disabled={isFetching}
+          />
         </div>
       )}
 

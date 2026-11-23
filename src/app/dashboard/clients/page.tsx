@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Client } from "@/types";
 import { useToast } from "@/context/ToastContext";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { FormField } from "@/components/ui/FormField";
+import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   UserPlus,
@@ -21,11 +24,74 @@ import {
 } from "lucide-react";
 
 export default function ClientsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center py-24">
+          <Spinner className="w-8 h-8 text-[#7455A4]" />
+        </div>
+      }
+    >
+      <ClientsContent />
+    </Suspense>
+  );
+}
+
+function ClientsContent() {
   const toast = useToast();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Read URL query parameters
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const perPage = Number(searchParams.get("per_page")) || 25;
+  const searchParam = searchParams.get("search") || "";
+
+  // Local state for search input to allow smooth typing before URL update
+  const [searchInput, setSearchInput] = useState(searchParam);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync search input on URL searchParam navigation
+    setSearchInput(searchParam);
+  }, [searchParam]);
+
+  // Synchronize query updates to URL
+  const updateQuery = useCallback(
+    (updates: Record<string, string | number | null | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(updates)) {
+        if (val === null || val === undefined || val === "") {
+          params.delete(key);
+        } else {
+          params.set(key, String(val));
+        }
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  // Paginated list hook
+  const {
+    items: clients,
+    total,
+    currentPage,
+    lastPage,
+    from,
+    to,
+    isLoading,
+    isFetching,
+    error,
+    refresh,
+    retry,
+  } = usePaginatedList<Client>({
+    endpoint: "/clients",
+    page,
+    perPage,
+    search: searchParam,
+    sort: "full_name",
+    direction: "asc",
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,24 +102,6 @@ export default function ClientsPage() {
     phone: "",
     notes: "",
   });
-
-  const fetchClients = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await apiFetch<Client[]>("/clients");
-      setClients(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load clients.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch clients on initial page mount
-    fetchClients();
-  }, []);
 
   const openModal = () => {
     setFieldErrors({});
@@ -74,13 +122,12 @@ export default function ClientsPage() {
         notes: formData.notes.trim() || null,
       };
 
-      const response = await apiFetch<{ message: string; client: Client }>("/clients", {
+      await apiFetch<{ message: string; client: Client }>("/clients", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      const newClient = response.client || (response as unknown as Client);
-      setClients((prev) => [newClient, ...prev]);
+      refresh();
       setIsModalOpen(false);
       setFormData({ full_name: "", email: "", phone: "", notes: "" });
       toast.success("Client created successfully.");
@@ -93,18 +140,6 @@ export default function ClientsPage() {
       setIsSubmitting(false);
     }
   };
-
-  const filteredClients = clients.filter((client) => {
-    const clientName = client.full_name || "";
-    const clientEmail = client.email || "";
-    const clientPhone = client.phone || "";
-    const query = searchQuery.toLowerCase();
-    return (
-      clientName.toLowerCase().includes(query) ||
-      clientEmail.toLowerCase().includes(query) ||
-      clientPhone.includes(searchQuery)
-    );
-  });
 
   const inputClass = (field: string) =>
     `w-full px-3.5 py-2.5 border rounded-xl text-sm transition-all focus:outline-none focus:ring-2 ${
@@ -138,13 +173,20 @@ export default function ClientsPage() {
         <input
           type="text"
           placeholder="Search by name, email, or phone..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={(e) => {
+            const val = e.target.value;
+            setSearchInput(val);
+            updateQuery({ search: val || null, page: 1 });
+          }}
           className="w-full pl-10 pr-10 py-2.5 border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] text-sm bg-white shadow-xs hover:border-[#C9B8E2] text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
         />
-        {searchQuery && (
+        {searchInput && (
           <button
-            onClick={() => setSearchQuery("")}
+            onClick={() => {
+              setSearchInput("");
+              updateQuery({ search: null, page: 1 });
+            }}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-[#7A6F86] hover:text-[#33283D] transition-colors cursor-pointer rounded-lg hover:bg-[#FAF8FC]"
             aria-label="Clear search"
           >
@@ -161,7 +203,7 @@ export default function ClientsPage() {
             <p className="text-sm font-medium">{error}</p>
           </div>
           <button
-            onClick={fetchClients}
+            onClick={retry}
             className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800 transition-colors cursor-pointer flex-shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -176,13 +218,13 @@ export default function ClientsPage() {
           <Spinner className="w-6 h-6 text-[#7455A4] mb-3" />
           <p className="text-sm text-[#7A6F86]">Loading clients...</p>
         </div>
-      ) : filteredClients.length === 0 ? (
+      ) : clients.length === 0 ? (
         <div className="text-center py-20 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
           <Users className="w-10 h-10 text-[#C9B8E2] mx-auto mb-3" />
           <p className="text-sm font-semibold text-[#33283D]">
-            {searchQuery ? "No clients match your search." : "No clients yet."}
+            {searchParam ? "No clients match your search." : "No clients yet."}
           </p>
-          {!searchQuery && (
+          {!searchParam && (
             <p className="text-xs text-[#7A6F86] mt-1">Add your first client to get started.</p>
           )}
         </div>
@@ -208,7 +250,7 @@ export default function ClientsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#FAF8FC] bg-white">
-                {filteredClients.map((client) => {
+                {clients.map((client) => {
                   return (
                     <tr key={client.id} className="hover:bg-[#FAF8FC] transition-colors group">
                       <td className="px-5 py-3.5 whitespace-nowrap">
@@ -262,7 +304,7 @@ export default function ClientsPage() {
 
           {/* Mobile Card View (360px-friendly, with >=40px touch targets) */}
           <div className="md:hidden divide-y divide-[#EAE4F2]">
-            {filteredClients.map((client) => {
+            {clients.map((client) => {
               return (
                 <div key={client.id} className="p-4 space-y-3 bg-white">
                   <div className="flex items-center justify-between gap-3">
@@ -325,12 +367,18 @@ export default function ClientsPage() {
             })}
           </div>
 
-          <div className="px-5 py-3 border-t border-[#EAE4F2] bg-[#FAF8FC] flex items-center justify-between">
-            <p className="text-xs text-[#7A6F86]">
-              Showing <span className="font-semibold text-[#33283D]">{filteredClients.length}</span> of{" "}
-              <span className="font-semibold text-[#33283D]">{clients.length}</span> clients
-            </p>
-          </div>
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            lastPage={lastPage}
+            total={total}
+            from={from}
+            to={to}
+            perPage={perPage}
+            onPageChange={(p) => updateQuery({ page: p })}
+            onPerPageChange={(pp) => updateQuery({ per_page: pp, page: 1 })}
+            disabled={isFetching}
+          />
         </div>
       )}
 
