@@ -6,6 +6,7 @@ import { usePermissions } from "@/lib/permissions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@/lib/currency";
+import { parseNaiveDateTime } from "@/lib/dates";
 import {
   Calendar,
   Clock,
@@ -179,7 +180,7 @@ export function ReservationsTable({
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-[#7A6F86]/70 flex-shrink-0" />
                       <span>
-                        {res.start_time ? new Date(res.start_time).toLocaleString() : "Date N/A"}
+                        {res.start_time ? parseNaiveDateTime(res.start_time).toLocaleString() : "Date N/A"}
                       </span>
                     </div>
                   </td>
@@ -335,7 +336,7 @@ export function ReservationsTable({
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-[#7A6F86]/70 flex-shrink-0" />
                   <span>
-                    {res.start_time ? new Date(res.start_time).toLocaleString() : "Date N/A"}
+                    {res.start_time ? parseNaiveDateTime(res.start_time).toLocaleString() : "Date N/A"}
                   </span>
                 </div>
                 <span className="font-bold text-[#33283D]">

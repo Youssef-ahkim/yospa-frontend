@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { Client, Service, Therapist, Reservation, ReservationStatus } from "@/types";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { Client, Service, Therapist, Reservation, ReservationStatus, Paginated } from "@/types";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { FormField } from "@/components/ui/FormField";
 import { Spinner } from "@/components/ui/Spinner";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { SearchablePicker } from "@/components/ui/SearchablePicker";
 import { formatCurrency } from "@/lib/currency";
 import { apiFetch, ApiError } from "@/lib/api";
 import { checkReservationOverlap } from "@/lib/overlap";
+import { parseNaiveDateTime } from "@/lib/dates";
 import { useToast } from "@/context/ToastContext";
 import { Calendar, Edit3, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +20,7 @@ interface ReservationFormProps {
   onClose: () => void;
   initial?: Reservation | null;
   initialStartTime?: string;
-  clients: Client[];
+  clients?: Client[];
   services: Service[];
   therapists?: Therapist[];
   existingReservations?: Reservation[];
@@ -27,7 +29,7 @@ interface ReservationFormProps {
 
 function toLocalDatetimeInput(dateStr: string): string {
   if (!dateStr) return "";
-  const d = new Date(dateStr.replace(" ", "T"));
+  const d = parseNaiveDateTime(dateStr);
   if (isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   const y = d.getFullYear();
@@ -52,7 +54,7 @@ function getDefaultStartTime(): string {
 
 function calculateEndTime(startStr: string, durationMinutes: number): string {
   if (!startStr) return "";
-  const startDate = new Date(startStr.replace(" ", "T"));
+  const startDate = parseNaiveDateTime(startStr);
   if (isNaN(startDate.getTime())) return "";
   const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -73,9 +75,7 @@ export function ReservationForm({
   onClose,
   initial = null,
   initialStartTime,
-  clients,
   services,
-  therapists = [],
   existingReservations = [],
   onSuccess,
 }: ReservationFormProps) {
@@ -92,6 +92,9 @@ export function ReservationForm({
     status: "confirmed" as ReservationStatus,
     notes: "",
   });
+
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [priceAutoUpdated, setPriceAutoUpdated] = useState(false);
@@ -113,30 +116,6 @@ export function ReservationForm({
     return services;
   }, [services, initial]);
 
-  // In edit mode: if initial.therapist is inactive (not in active therapists), append it with (inactive)
-  const availableTherapists = useMemo(() => {
-    const t = initial?.therapist;
-    if (t && !therapists.some((item) => item.id === t.id)) {
-      return [
-        ...therapists,
-        {
-          ...t,
-          name: `${t.name} (inactive)`,
-        },
-      ];
-    }
-    return therapists;
-  }, [therapists, initial]);
-
-  // In edit mode: defensive check to ensure initial.client is included in options
-  const availableClients = useMemo(() => {
-    const cl = initial?.client;
-    if (cl && !clients.some((c) => c.id === cl.id)) {
-      return [cl, ...clients];
-    }
-    return clients;
-  }, [clients, initial]);
-
   // Non-blocking overlap conflict detection (generic + same-therapist)
   const overlapCheck = useMemo(() => {
     return checkReservationOverlap({
@@ -149,20 +128,15 @@ export function ReservationForm({
   }, [existingReservations, formData.start_time, formData.end_time, formData.therapist_id, initial?.id]);
 
   const formatConflictTime = (startStr: string, endStr: string) => {
-    const s = new Date(startStr.replace(" ", "T"));
-    const e = new Date(endStr.replace(" ", "T"));
+    const s = parseNaiveDateTime(startStr);
+    const e = parseNaiveDateTime(endStr);
     const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
     return `${s.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${s.toLocaleTimeString([], timeOpts)} - ${e.toLocaleTimeString([], timeOpts)}`;
   };
 
-  const formatTimeOnly = (dtStr: string) => {
-    const d = new Date(dtStr.replace(" ", "T"));
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
   const formatDateIfDifferent = (resTime: string, formTime: string) => {
-    const r = new Date(resTime.replace(" ", "T"));
-    const f = new Date(formTime.replace(" ", "T"));
+    const r = parseNaiveDateTime(resTime);
+    const f = parseNaiveDateTime(formTime);
     if (r.toDateString() !== f.toDateString()) {
       return ` on ${r.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
     }
@@ -180,6 +154,8 @@ export function ReservationForm({
 
       if (initial) {
         // Edit mode: prefill existing reservation WITHOUT recalculating/auto-filling price or duration
+        setSelectedClient(initial.client || null);
+        setSelectedTherapist(initial.therapist || null);
         setFormData({
           client_id: String(initial.client_id || initial.client?.id || ""),
           service_id: String(initial.service_id || initial.service?.id || ""),
@@ -192,11 +168,13 @@ export function ReservationForm({
         });
       } else {
         // Create mode: auto-fill default values
+        setSelectedClient(null);
+        setSelectedTherapist(null);
         const start = initialStartTime || getDefaultStartTime();
         const defaultService = services[0];
         const end = defaultService ? calculateEndTime(start, defaultService.duration_minutes) : "";
         setFormData({
-          client_id: clients.length > 0 ? String(clients[0].id) : "",
+          client_id: "",
           service_id: defaultService ? String(defaultService.id) : "",
           therapist_id: "",
           start_time: start,
@@ -207,7 +185,25 @@ export function ReservationForm({
         });
       }
     }
-  }, [open, initial, initialStartTime, services, clients]);
+  }, [open, initial, initialStartTime, services]);
+
+  // Search-as-you-type API fetchers for Client and Therapist (?search, ?per_page=10)
+  const fetchClients = useCallback(async (query: string): Promise<Client[]> => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("search", query.trim());
+    params.set("per_page", "10");
+    const res = await apiFetch<Paginated<Client> | Client[]>(`/clients?${params.toString()}`);
+    return Array.isArray(res) ? res : res.data;
+  }, []);
+
+  const fetchTherapists = useCallback(async (query: string): Promise<Therapist[]> => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("search", query.trim());
+    params.set("per_page", "10");
+    params.set("all", "1");
+    const res = await apiFetch<Paginated<Therapist> | Therapist[]>(`/therapists?${params.toString()}`);
+    return Array.isArray(res) ? res : res.data;
+  }, []);
 
   const handleServiceChange = (serviceId: string) => {
     const selected = availableServices.find((s) => String(s.id) === serviceId);
@@ -303,7 +299,7 @@ export function ReservationForm({
         onSuccess(response.reservation, true);
         onClose();
       } else {
-        // POST: create new reservation
+        // POST: send client_id, service_id, therapist_id, start_time, end_time, total_price, status, notes
         const payload = {
           client_id: Number(formData.client_id),
           service_id: Number(formData.service_id),
@@ -378,7 +374,7 @@ export function ReservationForm({
           <button
             type="submit"
             form="reservation-form"
-            disabled={isSubmitting || availableClients.length === 0}
+            disabled={isSubmitting || !formData.client_id}
             className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-[#7455A4] hover:bg-[#5E4387] disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
           >
             {isSubmitting && <Spinner className="w-4 h-4" />}
@@ -394,7 +390,7 @@ export function ReservationForm({
       }
     >
       <form id="reservation-form" onSubmit={handleSubmit} className="p-6 space-y-5">
-        {/* Client Picker */}
+        {/* Client Picker (Search-as-you-type) */}
         <FormField
           label="Client"
           required
@@ -410,29 +406,38 @@ export function ReservationForm({
             ) : undefined
           }
         >
-          {availableClients.length === 0 ? (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-              No clients found. Please{" "}
-              <Link href="/dashboard/clients" className="underline font-semibold">
-                create a client
-              </Link>{" "}
-              before scheduling a reservation.
-            </div>
-          ) : (
-            <select
-              required
-              value={formData.client_id}
-              onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-              className={inputCls("client_id") + " bg-white"}
-            >
-              <option value="">-- Select Client --</option>
-              {availableClients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.full_name} {c.phone ? `(${c.phone})` : c.email ? `(${c.email})` : ""}
-                </option>
-              ))}
-            </select>
-          )}
+          <SearchablePicker<Client>
+            value={formData.client_id}
+            selectedItem={selectedClient}
+            onSelect={(client) => {
+              setSelectedClient(client);
+              setFormData((prev) => ({
+                ...prev,
+                client_id: client ? String(client.id) : "",
+              }));
+              if (fieldErrors.client_id) {
+                setFieldErrors((prev) => ({ ...prev, client_id: [] }));
+              }
+            }}
+            fetchOptions={fetchClients}
+            getId={(c) => c.id}
+            getDisplayValue={(c) =>
+              `${c.full_name}${c.phone ? ` (${c.phone})` : c.email ? ` (${c.email})` : ""}`
+            }
+            renderItem={(c) => (
+              <div>
+                <span className="font-medium text-[#33283D]">{c.full_name}</span>
+                {(c.phone || c.email) && (
+                  <span className="text-[11px] text-[#7A6F86] block">
+                    {c.phone ? c.phone : ""} {c.email ? `• ${c.email}` : ""}
+                  </span>
+                )}
+              </div>
+            )}
+            placeholder="Search by client name, phone, or email..."
+            required
+            error={fieldErrors.client_id?.[0]}
+          />
         </FormField>
 
         {/* Service Picker */}
@@ -458,20 +463,38 @@ export function ReservationForm({
           )}
         </FormField>
 
-        {/* Therapist Picker */}
+        {/* Therapist Picker (Search-as-you-type) */}
         <FormField label="Assigned Therapist" error={fieldErrors.therapist_id?.[0]}>
-          <select
+          <SearchablePicker<Therapist>
             value={formData.therapist_id}
-            onChange={(e) => setFormData((prev) => ({ ...prev, therapist_id: e.target.value }))}
-            className={inputCls("therapist_id") + " bg-white"}
-          >
-            <option value="">Unassigned</option>
-            {availableTherapists.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+            selectedItem={selectedTherapist}
+            onSelect={(therapist) => {
+              setSelectedTherapist(therapist);
+              setFormData((prev) => ({
+                ...prev,
+                therapist_id: therapist ? String(therapist.id) : "",
+              }));
+            }}
+            fetchOptions={fetchTherapists}
+            getId={(t) => t.id}
+            getDisplayValue={(t) => t.name}
+            renderItem={(t) => (
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: t.color || "#7455A4" }}
+                />
+                <span className="font-medium text-[#33283D]">{t.name}</span>
+                {!t.is_active && (
+                  <span className="text-[10px] text-gray-500 italic">(inactive)</span>
+                )}
+              </div>
+            )}
+            placeholder="Search and assign therapist..."
+            allowClear
+            clearLabel="Unassigned"
+            error={fieldErrors.therapist_id?.[0]}
+          />
         </FormField>
 
         {/* Date & Time Grid */}
@@ -485,125 +508,116 @@ export function ReservationForm({
               className={inputCls("start_time")}
             />
           </FormField>
+
           <FormField label="End Date & Time" required error={fieldErrors.end_time?.[0]}>
             <input
               type="datetime-local"
               required
               value={formData.end_time}
-              onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, end_time: e.target.value }))}
               className={inputCls("end_time")}
             />
           </FormField>
         </div>
 
-        {/* Stronger Same-Therapist Double-Booking Warning */}
-        {overlapCheck.therapistConflict && (
-          <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 animate-in fade-in duration-150">
-            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <p className="font-bold text-rose-950">
-                Therapist Double-Booking Warning
-              </p>
-              <p>
-                <strong className="font-bold text-rose-950">
-                  {overlapCheck.therapistConflict.therapist?.name || availableTherapists.find((t) => String(t.id) === formData.therapist_id)?.name || "This therapist"}
-                </strong>{" "}
-                is already booked with{" "}
-                <strong className="font-semibold text-rose-950">
-                  {overlapCheck.therapistConflict.client?.full_name || "another client"}
-                </strong>{" "}
-                from {formatTimeOnly(overlapCheck.therapistConflict.start_time)} to {formatTimeOnly(overlapCheck.therapistConflict.end_time)}
-                {formatDateIfDifferent(overlapCheck.therapistConflict.start_time, formData.start_time)}.
-              </p>
-              <p className="text-rose-800/80 text-[11px]">
-                You can still save this reservation if this double-booking is intentional.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Existing Generic Overlap Warning (shown when not already showing same-therapist conflict) */}
-        {overlapCheck.genericConflict && !overlapCheck.therapistConflict && (
-          <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 animate-in fade-in duration-150">
+        {/* Non-blocking Overlap Warnings */}
+        {overlapCheck.hasGenericConflict && (
+          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <p className="font-semibold text-amber-950">
-                Schedule Overlap Detected
-              </p>
-              <p>
-                Conflicts with{" "}
-                <strong className="font-semibold text-amber-950">
-                  {overlapCheck.genericConflict.client?.full_name || "another client"}
-                </strong>{" "}
-                ({formatConflictTime(overlapCheck.genericConflict.start_time, overlapCheck.genericConflict.end_time)}).
-              </p>
-              <p className="text-amber-800/80 text-[11px]">
-                You can still save this reservation if this double-booking is intentional.
-              </p>
+            <div className="space-y-0.5 text-xs text-amber-900 leading-relaxed">
+              <p className="font-semibold">Schedule Overlap Detected</p>
+              {overlapCheck.hasTherapistConflict && overlapCheck.therapistConflict ? (
+                <p>
+                  This therapist is already assigned to a reservation for{" "}
+                  <strong>{overlapCheck.therapistConflict.client?.full_name || "another client"}</strong>
+                  {formatDateIfDifferent(overlapCheck.therapistConflict.start_time, formData.start_time)}{" "}
+                  ({formatConflictTime(overlapCheck.therapistConflict.start_time, overlapCheck.therapistConflict.end_time)}).
+                </p>
+              ) : (
+                <p>
+                  Another appointment exists during this window
+                  {overlapCheck.genericConflict
+                    ? ` (${formatConflictTime(overlapCheck.genericConflict.start_time, overlapCheck.genericConflict.end_time)})`
+                    : ""}. You may still save this reservation.
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {/* Price and Status Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label="Total Price (MAD)" required error={fieldErrors.total_price?.[0]}>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                value={formData.total_price}
-                onChange={(e) => handlePriceChange(e.target.value)}
-                className={inputCls("total_price") + " pr-12"}
-                placeholder="0.00"
-              />
-              <span className="text-xs font-semibold text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 select-none">
-                MAD
+        {/* Total Price */}
+        <FormField
+          label="Total Price"
+          required
+          error={fieldErrors.total_price?.[0]}
+          labelExtra={
+            priceAutoUpdated ? (
+              <span className="text-[11px] text-[#7455A4] font-medium animate-pulse">
+                Auto-updated from selected service
               </span>
-            </div>
-            {isEdit && priceAutoUpdated && (
-              <p className="text-xs text-[#7455A4] mt-1 font-medium">
-                Price auto-updated from selected service
-              </p>
-            )}
-          </FormField>
+            ) : priceManuallyEdited ? (
+              <span className="text-[11px] text-[#7A6F86]">Custom price set</span>
+            ) : undefined
+          }
+        >
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#7A6F86]">
+              $
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              value={formData.total_price}
+              onChange={(e) => handlePriceChange(e.target.value)}
+              placeholder="0.00"
+              className={inputCls("total_price") + " pl-8 font-semibold"}
+            />
+          </div>
+        </FormField>
 
-          {isEdit && initial ? (
-            <FormField label="Status">
-              <div className="flex items-center gap-2 pt-2">
-                <StatusBadge status={initial.status} />
-                <span className="text-xs text-[#7A6F86]">
-                  (Status is changed via row actions)
-                </span>
-              </div>
-            </FormField>
-          ) : (
-            <FormField label="Status">
-              <select
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value as ReservationStatus })
-                }
-                className={inputCls() + " bg-white"}
-              >
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </FormField>
-          )}
-        </div>
+        {/* Initial Status (only visible in create mode) */}
+        {!isEdit && (
+          <FormField label="Initial Status" required>
+            <div className="flex gap-3">
+              {(["confirmed", "pending"] as ReservationStatus[]).map((st) => (
+                <label
+                  key={st}
+                  className={`flex-1 flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-colors ${
+                    formData.status === st
+                      ? "border-[#7455A4] bg-[#F0EAF7]/30 ring-1 ring-[#7455A4]"
+                      : "border-[#EAE4F2] hover:bg-[#FAF8FC]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="status"
+                      value={st}
+                      checked={formData.status === st}
+                      onChange={() => setFormData({ ...formData, status: st })}
+                      className="text-[#7455A4] focus:ring-[#7455A4]"
+                    />
+                    <span className="text-xs font-semibold text-[#33283D] capitalize">
+                      {st}
+                    </span>
+                  </div>
+                  <StatusBadge status={st} />
+                </label>
+              ))}
+            </div>
+          </FormField>
+        )}
 
         {/* Notes */}
-        <FormField label="Notes / Preferences" error={fieldErrors.notes?.[0]}>
+        <FormField label="Internal Notes (Optional)" error={fieldErrors.notes?.[0]}>
           <textarea
             rows={3}
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="Add any special client requests, preferences, or medical notes..."
             className={inputCls("notes")}
-            placeholder="E.g. Room preference, special accommodations..."
           />
         </FormField>
       </form>

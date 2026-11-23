@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import {
-  Client,
   Service,
   Therapist,
   Reservation,
@@ -18,106 +18,154 @@ import {
   AlertCircle,
   Search,
   RotateCcw,
+  ArrowUpDown,
 } from "lucide-react";
 import { CalendarView } from "@/components/reservations/CalendarView";
 import { ReservationsTable } from "@/components/reservations/ReservationsTable";
 import { ReservationForm } from "@/components/reservations/ReservationForm";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/context/ToastContext";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
 
-type DateFilter = "all" | "today" | "upcoming" | "past";
-
-export default function ReservationsPage() {
+function ReservationsContent() {
   const toast = useToast();
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Read URL query parameters
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const perPage = Number(searchParams.get("per_page")) || 25;
+  const statusParam = (searchParams.get("status") as ReservationStatus | "all") || "all";
+  const therapistIdParam = searchParams.get("therapist_id") || "all";
+  const fromParam = searchParams.get("from") || "";
+  const toParam = searchParams.get("to") || "";
+  const searchParam = searchParams.get("search") || "";
+  const directionParam = (searchParams.get("direction") as "asc" | "desc") || "desc";
+
+  // Local state for search input to allow smooth typing before URL update
+  const [searchInput, setSearchInput] = useState(searchParam);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync search input on URL searchParam navigation
+    setSearchInput(searchParam);
+  }, [searchParam]);
+
+  // Synchronize query updates to URL
+  const updateQuery = useCallback(
+    (updates: Record<string, string | number | null | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(updates)) {
+        if (val === null || val === undefined || val === "" || val === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, String(val));
+        }
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  // Date range validation: from <= to
+  const isDateRangeValid = useMemo(() => {
+    if (fromParam && toParam) {
+      return fromParam <= toParam;
+    }
+    return true;
+  }, [fromParam, toParam]);
+
+  // Filter options: Services & Therapists metadata
   const [services, setServices] = useState<Service[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
+  // View mode switcher: list vs calendar
   const [activeView, setActiveView] = useState<"list" | "calendar">("list");
+  const [calendarReservations, setCalendarReservations] = useState<Reservation[]>([]);
+  const [isCalendarLoading, setIsCalendarLoading] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | ReservationStatus>("all");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  // Paginated list hook for reservations list view
+  const {
+    items: reservations,
+    total,
+    currentPage,
+    lastPage,
+    from: pageFrom,
+    to: pageTo,
+    isLoading,
+    isFetching,
+    error,
+    refresh,
+    retry,
+  } = usePaginatedList<Reservation>({
+    endpoint: "/reservations",
+    page,
+    perPage,
+    search: searchParam,
+    filters: {
+      status: statusParam !== "all" ? statusParam : undefined,
+      therapist_id: therapistIdParam !== "all" ? therapistIdParam : undefined,
+      from: isDateRangeValid && fromParam ? fromParam : undefined,
+      to: isDateRangeValid && toParam ? toParam : undefined,
+    },
+    sort: "start_time",
+    direction: directionParam,
+    enabled: activeView === "list",
+  });
 
+  // Load services and therapists for dropdowns
+  const fetchMetadata = useCallback(async () => {
+    try {
+      const [servicesData, therapistsData] = await Promise.all([
+        apiFetch<Service[]>("/services").catch(() => []),
+        apiFetch<Therapist[]>("/therapists?all=1").catch(() => []),
+      ]);
+      setServices(servicesData);
+      setTherapists(therapistsData);
+    } catch {
+      // Ignored for filter metadata
+    }
+  }, []);
+
+  // Fetch full unpaginated reservations when calendar view is opened
+  const fetchCalendarData = useCallback(async () => {
+    try {
+      setIsCalendarLoading(true);
+      const data = await apiFetch<Reservation[]>("/reservations");
+      setCalendarReservations(data);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to load calendar events.");
+    } finally {
+      setIsCalendarLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch service and therapist metadata for filters
+    fetchMetadata();
+  }, [fetchMetadata]);
+
+  useEffect(() => {
+    if (activeView === "calendar") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Load calendar events when calendar view is opened
+      fetchCalendarData();
+    }
+  }, [activeView, fetchCalendarData]);
+
+  // Action states
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Slide-over modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [slotStartTime, setSlotStartTime] = useState<string | undefined>(undefined);
 
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const [reservationsData, clientsData, servicesData, therapistsData] = await Promise.all([
-        apiFetch<Reservation[]>("/reservations"),
-        apiFetch<Client[]>("/clients").catch(() => []),
-        apiFetch<Service[]>("/services").catch(() => []),
-        apiFetch<Therapist[]>("/therapists").catch(() => []),
-      ]);
-      setReservations(reservationsData);
-      setClients(clientsData);
-      setServices(servicesData);
-      setTherapists(therapistsData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load reservations.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch reservations, services, and therapists on mount
-    fetchData();
-  }, []);
-
-  const checkDateFilter = (startTimeStr: string, filter: DateFilter): boolean => {
-    if (filter === "all") return true;
-    const itemDate = new Date(startTimeStr);
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    if (filter === "today") return itemDate >= startOfToday && itemDate <= endOfToday;
-    if (filter === "upcoming") return itemDate > endOfToday;
-    if (filter === "past") return itemDate < startOfToday;
-    return true;
-  };
-
-  const baseFiltered = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return reservations.filter((res) => {
-      const matchesSearch =
-        q === "" ||
-        (res.client?.full_name && res.client.full_name.toLowerCase().includes(q)) ||
-        (res.client?.phone && res.client.phone.includes(q)) ||
-        (res.client?.email && res.client.email.toLowerCase().includes(q)) ||
-        (res.service?.name && res.service.name.toLowerCase().includes(q));
-      const matchesDate = checkDateFilter(res.start_time, dateFilter);
-      return matchesSearch && matchesDate;
-    });
-  }, [reservations, searchQuery, dateFilter]);
-
-  const statusCounts = useMemo(() => ({
-    all: baseFiltered.length,
-    pending: baseFiltered.filter((r) => r.status === "pending").length,
-    confirmed: baseFiltered.filter((r) => r.status === "confirmed").length,
-    completed: baseFiltered.filter((r) => r.status === "completed").length,
-    cancelled: baseFiltered.filter((r) => r.status === "cancelled").length,
-  }), [baseFiltered]);
-
-  const displayedReservations = useMemo(
-    () => baseFiltered.filter((r) => statusFilter === "all" || r.status === statusFilter),
-    [baseFiltered, statusFilter]
-  );
-
+  // Status transition handler
   const handleStatusChange = async (reservation: Reservation, newStatus: ReservationStatus) => {
     if (newStatus === "cancelled") {
       setCancelTarget(reservation);
@@ -125,13 +173,13 @@ export default function ReservationsPage() {
     }
     setUpdatingId(reservation.id);
     try {
-      const response = await apiFetch<{ message: string; reservation: Reservation }>(
+      await apiFetch<{ message: string; reservation: Reservation }>(
         `/reservations/${reservation.id}`,
         { method: "PATCH", body: JSON.stringify({ status: newStatus }) }
       );
-      const updated = response.reservation || { ...reservation, status: newStatus };
-      setReservations((prev) => prev.map((item) => (item.id === reservation.id ? updated : item)));
       toast.success(`Reservation marked as ${RESERVATION_STATUSES[newStatus].label}.`);
+      refresh();
+      if (activeView === "calendar") fetchCalendarData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update reservation status.");
     } finally {
@@ -139,19 +187,20 @@ export default function ReservationsPage() {
     }
   };
 
+  // Confirm cancel dialog
   const handleConfirmCancel = async () => {
     if (!cancelTarget) return;
     setIsCancelling(true);
     setUpdatingId(cancelTarget.id);
     try {
-      const response = await apiFetch<{ message: string; reservation: Reservation }>(
+      await apiFetch<{ message: string; reservation: Reservation }>(
         `/reservations/${cancelTarget.id}`,
         { method: "PATCH", body: JSON.stringify({ status: "cancelled" }) }
       );
-      const updated = response.reservation || { ...cancelTarget, status: "cancelled" };
-      setReservations((prev) => prev.map((item) => (item.id === cancelTarget.id ? updated : item)));
       setCancelTarget(null);
       toast.success("Reservation cancelled.");
+      refresh();
+      if (activeView === "calendar") fetchCalendarData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel reservation.");
     } finally {
@@ -160,6 +209,7 @@ export default function ReservationsPage() {
     }
   };
 
+  // Confirm delete dialog
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -169,9 +219,10 @@ export default function ReservationsPage() {
         `/reservations/${deleteTarget.id}`,
         { method: "DELETE" }
       );
-      setReservations((prev) => prev.filter((r) => r.id !== deleteTarget.id));
       setDeleteTarget(null);
       toast.success(response.message || "Reservation deleted successfully.");
+      refresh();
+      if (activeView === "calendar") fetchCalendarData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete reservation.");
     } finally {
@@ -180,9 +231,9 @@ export default function ReservationsPage() {
     }
   };
 
-  const openCreateModal = (initialStartTime?: string) => {
+  const openCreateModal = (initialStart?: string) => {
     setEditingReservation(null);
-    setSlotStartTime(initialStartTime);
+    setSlotStartTime(initialStart);
     setIsModalOpen(true);
   };
 
@@ -196,37 +247,31 @@ export default function ReservationsPage() {
     setIsModalOpen(true);
   };
 
-  const handleReservationSaved = (savedReservation: Reservation, isEdit: boolean) => {
-    if (isEdit) {
-      setReservations((prev) =>
-        prev.map((item) => (item.id === savedReservation.id ? savedReservation : item))
-      );
-    } else {
-      setReservations((prev) => [savedReservation, ...prev]);
-    }
+  const handleReservationSaved = () => {
+    refresh();
+    if (activeView === "calendar") fetchCalendarData();
   };
 
+  // Clear all filters handler
   const clearAllFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setDateFilter("all");
+    setSearchInput("");
+    router.push(pathname);
   };
 
-  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || dateFilter !== "all";
+  const hasActiveFilters = Boolean(
+    searchParam ||
+      statusParam !== "all" ||
+      therapistIdParam !== "all" ||
+      fromParam ||
+      toParam
+  );
 
-  const statusTabs: { label: string; value: "all" | ReservationStatus; count: number }[] = [
-    { label: "All", value: "all", count: statusCounts.all },
-    { label: "Pending", value: "pending", count: statusCounts.pending },
-    { label: "Confirmed", value: "confirmed", count: statusCounts.confirmed },
-    { label: "Completed", value: "completed", count: statusCounts.completed },
-    { label: "Cancelled", value: "cancelled", count: statusCounts.cancelled },
-  ];
-
-  const dateFilterButtons: { label: string; value: DateFilter }[] = [
-    { label: "All Time", value: "all" },
-    { label: "Today", value: "today" },
-    { label: "Upcoming", value: "upcoming" },
-    { label: "Past", value: "past" },
+  const statusTabs: { label: string; value: "all" | ReservationStatus }[] = [
+    { label: "All", value: "all" },
+    { label: "Pending", value: "pending" },
+    { label: "Confirmed", value: "confirmed" },
+    { label: "Completed", value: "completed" },
+    { label: "Cancelled", value: "cancelled" },
   ];
 
   return (
@@ -284,51 +329,63 @@ export default function ReservationsPage() {
             <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
             <p className="text-sm font-medium">{error}</p>
           </div>
-          <button onClick={() => fetchData()} className="text-sm underline hover:text-red-900 cursor-pointer">
+          <button
+            onClick={() => retry()}
+            className="text-sm underline hover:text-red-900 cursor-pointer font-semibold"
+          >
             Retry
           </button>
         </div>
       )}
 
       {/* Main Content Area */}
-      {isLoading ? (
-        <div className="flex justify-center items-center py-24 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
-          <div className="flex flex-col items-center gap-2">
-            <Spinner className="w-8 h-8 text-[#7455A4]" />
-            <span className="text-xs text-[#7A6F86] font-medium">Loading reservations...</span>
+      {activeView === "calendar" ? (
+        isCalendarLoading ? (
+          <div className="flex justify-center items-center py-24 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
+            <div className="flex flex-col items-center gap-2">
+              <Spinner className="w-8 h-8 text-[#7455A4]" />
+              <span className="text-xs text-[#7A6F86] font-medium">Loading calendar schedule...</span>
+            </div>
           </div>
-        </div>
-      ) : activeView === "calendar" ? (
-        <CalendarView
-          reservations={reservations}
-          therapists={therapists}
-          searchQuery={searchQuery}
-          statusFilter={statusFilter}
-          onSlotClick={(timeStr) => openCreateModal(timeStr)}
-          onStatusChange={handleStatusChange}
-          onCancelClick={(res) => setCancelTarget(res)}
-          onEditClick={openEditModal}
-          onDeleteClick={(res) => setDeleteTarget(res)}
-          updatingId={updatingId}
-        />
+        ) : (
+          <CalendarView
+            reservations={calendarReservations}
+            therapists={therapists}
+            searchQuery={searchParam}
+            statusFilter={statusParam}
+            onSlotClick={(timeStr) => openCreateModal(timeStr)}
+            onStatusChange={handleStatusChange}
+            onCancelClick={(res) => setCancelTarget(res)}
+            onEditClick={openEditModal}
+            onDeleteClick={(res) => setDeleteTarget(res)}
+            updatingId={updatingId}
+          />
+        )
       ) : (
         <>
           {/* Filters Bar */}
           <div className="bg-white border border-[#EAE4F2] rounded-2xl p-4 shadow-xs space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
               {/* Search input */}
-              <div className="relative flex-1 max-w-md">
+              <div className="md:col-span-4 relative">
                 <Search className="w-4 h-4 text-[#7A6F86] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by client, phone, email, service..."
+                  value={searchInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSearchInput(val);
+                    updateQuery({ search: val || null, page: 1 });
+                  }}
+                  placeholder="Search client name or phone..."
                   className="w-full pl-9 pr-8 py-2 text-sm border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] bg-white text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
                 />
-                {searchQuery && (
+                {searchInput && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      setSearchInput("");
+                      updateQuery({ search: null, page: 1 });
+                    }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7A6F86] hover:text-[#33283D] cursor-pointer"
                     aria-label="Clear search"
                   >
@@ -337,73 +394,137 @@ export default function ReservationsPage() {
                 )}
               </div>
 
-              {/* Date Filter Quick Buttons */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {dateFilterButtons.map((btn) => (
-                  <button
-                    key={btn.value}
-                    onClick={() => setDateFilter(btn.value)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                      dateFilter === btn.value
-                        ? "bg-[#33283D] text-white font-semibold"
-                        : "text-[#7A6F86] hover:bg-[#FAF8FC] border border-[#EAE4F2]"
-                    }`}
-                  >
-                    {btn.label}
-                  </button>
-                ))}
+              {/* Therapist Filter */}
+              <div className="md:col-span-3">
+                <select
+                  value={therapistIdParam}
+                  onChange={(e) => updateQuery({ therapist_id: e.target.value, page: 1 })}
+                  className="w-full px-3 py-2 text-xs border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] bg-white text-[#33283D]"
+                >
+                  <option value="all">All Therapists</option>
+                  {therapists.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} {!t.is_active ? "(inactive)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Range: From & To */}
+              <div className="md:col-span-3 flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={fromParam}
+                  onChange={(e) => updateQuery({ from: e.target.value || null, page: 1 })}
+                  className={`w-full px-2 py-1.5 text-xs border rounded-xl bg-white text-[#33283D] ${
+                    !isDateRangeValid ? "border-red-400 bg-red-50" : "border-[#EAE4F2]"
+                  }`}
+                  title="From date"
+                />
+                <span className="text-xs text-[#7A6F86]">to</span>
+                <input
+                  type="date"
+                  value={toParam}
+                  onChange={(e) => updateQuery({ to: e.target.value || null, page: 1 })}
+                  className={`w-full px-2 py-1.5 text-xs border rounded-xl bg-white text-[#33283D] ${
+                    !isDateRangeValid ? "border-red-400 bg-red-50" : "border-[#EAE4F2]"
+                  }`}
+                  title="To date"
+                />
+              </div>
+
+              {/* Sort toggle & Reset */}
+              <div className="md:col-span-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuery({
+                      direction: directionParam === "desc" ? "asc" : "desc",
+                      page: 1,
+                    })
+                  }
+                  className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] border border-[#C9B8E2] rounded-xl transition-colors cursor-pointer"
+                  title="Toggle chronological sorting"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span>{directionParam === "desc" ? "Newest" : "Oldest"}</span>
+                </button>
 
                 {hasActiveFilters && (
                   <button
                     onClick={clearAllFilters}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-[#7A6F86] hover:text-[#33283D] rounded-lg hover:bg-[#FAF8FC] transition-colors cursor-pointer ml-1"
-                    title="Reset all search filters"
+                    className="p-2 text-xs text-[#7A6F86] hover:text-[#33283D] rounded-xl hover:bg-[#FAF8FC] border border-[#EAE4F2] transition-colors cursor-pointer"
+                    title="Reset all filters"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>Reset</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
             </div>
+
+            {/* Date Range Validation Warning */}
+            {!isDateRangeValid && (
+              <p className="text-xs text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Start date must be on or before end date.</span>
+              </p>
+            )}
 
             {/* Status Tabs */}
             <div className="flex items-center gap-1 overflow-x-auto pt-2 border-t border-[#EAE4F2]">
               {statusTabs.map((tab) => (
                 <button
                   key={tab.value}
-                  onClick={() => setStatusFilter(tab.value)}
+                  onClick={() => updateQuery({ status: tab.value, page: 1 })}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                    statusFilter === tab.value
+                    statusParam === tab.value
                       ? "bg-[#33283D] text-white font-semibold shadow-xs"
                       : "text-[#7A6F86] hover:text-[#33283D] hover:bg-[#FAF8FC]"
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
-                      statusFilter === tab.value
-                        ? "bg-white/20 text-white"
-                        : "bg-[#F0EAF7] text-[#7455A4]"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Table Component */}
-          <ReservationsTable
-            displayedReservations={displayedReservations}
-            totalReservationsCount={reservations.length}
-            updatingId={updatingId}
-            onStatusChange={handleStatusChange}
-            onEditClick={openEditModal}
-            onDeleteClick={(res) => setDeleteTarget(res)}
-            onCreateClick={() => openCreateModal()}
-            onClearFilters={clearAllFilters}
-          />
+          {isLoading ? (
+            <div className="flex justify-center items-center py-24 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
+              <div className="flex flex-col items-center gap-2">
+                <Spinner className="w-8 h-8 text-[#7455A4]" />
+                <span className="text-xs text-[#7A6F86] font-medium">Loading reservations...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className={isFetching ? "opacity-60 pointer-events-none transition-opacity" : ""}>
+                <ReservationsTable
+                  displayedReservations={reservations}
+                  totalReservationsCount={total}
+                  updatingId={updatingId}
+                  onStatusChange={handleStatusChange}
+                  onEditClick={openEditModal}
+                  onDeleteClick={(res) => setDeleteTarget(res)}
+                  onCreateClick={() => openCreateModal()}
+                  onClearFilters={clearAllFilters}
+                />
+              </div>
+
+              {/* Server-side Pagination Control */}
+              <Pagination
+                currentPage={currentPage}
+                lastPage={lastPage}
+                total={total}
+                perPage={perPage}
+                from={pageFrom}
+                to={pageTo}
+                onPageChange={(newPage) => updateQuery({ page: newPage })}
+                onPerPageChange={(newPerPage) => updateQuery({ per_page: newPerPage, page: 1 })}
+                disabled={isFetching}
+              />
+            </div>
+          )}
         </>
       )}
 
@@ -485,12 +606,27 @@ export default function ReservationsPage() {
         }}
         initial={editingReservation}
         initialStartTime={slotStartTime}
-        clients={clients}
         services={services}
-        therapists={therapists}
         existingReservations={reservations}
         onSuccess={handleReservationSaved}
       />
     </div>
+  );
+}
+
+export default function ReservationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center py-24 bg-white border border-[#EAE4F2] rounded-2xl shadow-xs">
+          <div className="flex flex-col items-center gap-2">
+            <Spinner className="w-8 h-8 text-[#7455A4]" />
+            <span className="text-xs text-[#7A6F86] font-medium">Loading reservations...</span>
+          </div>
+        </div>
+      }
+    >
+      <ReservationsContent />
+    </Suspense>
   );
 }
