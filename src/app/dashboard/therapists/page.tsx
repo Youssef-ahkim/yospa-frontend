@@ -99,6 +99,7 @@ function TherapistsContent() {
     },
     sort: "name",
     direction: "asc",
+    onPageChange: (p) => updateQuery({ page: p }),
   });
 
   // Track in-flight action locks by therapist ID

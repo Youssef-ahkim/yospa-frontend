@@ -132,6 +132,7 @@ function StaffContent() {
     sort: "name",
     direction: "asc",
     enabled: !isAuthLoading && canManageStaff,
+    onPageChange: (p) => updateQuery({ page: p }),
   });
 
   // Track in-flight action locks by staff ID

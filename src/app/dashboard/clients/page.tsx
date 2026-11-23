@@ -91,6 +91,7 @@ function ClientsContent() {
     search: searchParam,
     sort: "full_name",
     direction: "asc",
+    onPageChange: (p) => updateQuery({ page: p }),
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);

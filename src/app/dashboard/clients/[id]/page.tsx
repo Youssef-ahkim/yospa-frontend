@@ -87,6 +87,7 @@ function ClientDetailContent() {
     sort: "start_time",
     direction: "desc",
     enabled: Boolean(clientId && !isNaN(clientId)),
+    onPageChange: (p) => updateQuery({ page: p }),
   });
 
   // Edit Modal State
@@ -109,17 +110,10 @@ function ClientDetailContent() {
   const [cancelResTarget, setCancelResTarget] = useState<Reservation | null>(null);
   const [isCancellingRes, setIsCancellingRes] = useState(false);
 
-  useEffect(() => {
-    if (!clientId || isNaN(clientId)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Validate clientId on mount before initiating fetch
-      setError("Invalid client ID.");
-      setIsLoading(false);
-      return;
-    }
-
-    const loadClientData = async () => {
+  const loadClientData = useCallback(
+    async (showLoading = false) => {
       try {
-        setIsLoading(true);
+        if (showLoading) setIsLoading(true);
         setError(null);
 
         const clientData = await apiFetch<Client>(`/clients/${clientId}`);
@@ -131,12 +125,22 @@ function ClientDetailContent() {
           setError(err instanceof Error ? err.message : "Failed to load client details.");
         }
       } finally {
-        setIsLoading(false);
+        if (showLoading) setIsLoading(false);
       }
-    };
+    },
+    [clientId]
+  );
 
-    loadClientData();
-  }, [clientId]);
+  useEffect(() => {
+    if (!clientId || isNaN(clientId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Validate clientId on mount before initiating fetch
+      setError("Invalid client ID.");
+      setIsLoading(false);
+      return;
+    }
+
+    loadClientData(true);
+  }, [clientId, loadClientData]);
 
   const handleOpenEdit = () => {
     if (!client) return;
@@ -222,6 +226,7 @@ function ClientDetailContent() {
 
       toast.success(`Reservation marked as ${newStatus}.`);
       refreshReservations();
+      loadClientData(false);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update reservation status.");
     } finally {
@@ -247,6 +252,7 @@ function ClientDetailContent() {
       setCancelResTarget(null);
       toast.success("Reservation cancelled.");
       refreshReservations();
+      loadClientData(false);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel reservation.");
     } finally {
@@ -254,13 +260,6 @@ function ClientDetailContent() {
       setUpdatingResId(null);
     }
   };
-
-  const totalSpend = reservations
-    .filter((r) => r.status !== "cancelled")
-    .reduce((sum, r) => {
-      const priceNum = Number(r.total_price ?? 0);
-      return sum + (isNaN(priceNum) ? 0 : priceNum);
-    }, 0);
 
   if (isLoading) {
     return (
@@ -334,11 +333,7 @@ function ClientDetailContent() {
       </div>
 
       {/* Client Overview Card & Stats Grid */}
-      <ClientProfileCard
-        client={client}
-        reservations={reservations}
-        totalSpend={totalSpend}
-      />
+      <ClientProfileCard client={client} />
 
       {/* Reservation History Section with Server-Side Pagination */}
       <ClientReservationHistory

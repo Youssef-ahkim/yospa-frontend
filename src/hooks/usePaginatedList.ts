@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { Paginated } from "@/types";
 
@@ -14,6 +15,7 @@ export interface UsePaginatedListOptions<F extends Record<string, unknown> = Rec
   direction?: "asc" | "desc";
   debounceMs?: number;
   enabled?: boolean;
+  onPageChange?: (page: number) => void;
 }
 
 export interface UsePaginatedListResult<T> {
@@ -44,7 +46,12 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
   direction,
   debounceMs = 300,
   enabled = true,
+  onPageChange,
 }: UsePaginatedListOptions<F>): UsePaginatedListResult<T> {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [data, setData] = useState<Paginated<T> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
@@ -69,8 +76,9 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
     };
   }, [search, debounceMs]);
 
-  // Stale-response guard counter
+  // Stale-response guard counter and auto-recovery loop guard
   const requestIdRef = useRef(0);
+  const lastRecoveredPageRef = useRef<number | null>(null);
 
   // Stable filters representation for dependency checking
   const filtersKey = useMemo(() => {
@@ -85,40 +93,76 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
     setIsFetching(true);
     setError(null);
 
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("per_page", String(perPage));
+    let targetPage = page;
 
-      if (debouncedSearch && debouncedSearch.trim()) {
-        params.set("search", debouncedSearch.trim());
-      }
-      if (sort) {
-        params.set("sort", sort);
-      }
-      if (direction) {
-        params.set("direction", direction);
-      }
-      if (filters) {
-        for (const [key, value] of Object.entries(filters)) {
-          if (value !== undefined && value !== null && value !== "" && value !== "all") {
-            params.set(key, String(value));
+    try {
+      while (true) {
+        const params = new URLSearchParams();
+        params.set("page", String(targetPage));
+        params.set("per_page", String(perPage));
+
+        if (debouncedSearch && debouncedSearch.trim()) {
+          params.set("search", debouncedSearch.trim());
+        }
+        if (sort) {
+          params.set("sort", sort);
+        }
+        if (direction) {
+          params.set("direction", direction);
+        }
+        if (filters) {
+          for (const [key, value] of Object.entries(filters)) {
+            if (value !== undefined && value !== null && value !== "" && value !== "all") {
+              params.set(key, String(value));
+            }
           }
         }
+
+        const queryString = params.toString();
+        const url = `${endpoint}${queryString ? `?${queryString}` : ""}`;
+        const result = await apiFetch<Paginated<T>>(url);
+
+        // Stale-response guard: ignore out-of-order responses
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+
+        const itemsList = Array.isArray(result?.data) ? result.data : [];
+        const resultLastPage = Number(result?.last_page ?? 1);
+
+        // Auto-recovery: when a response returns empty data and targetPage > 1 (or > last_page),
+        // automatically move to the last valid page without flashing empty state or looping.
+        if (itemsList.length === 0 && (targetPage > 1 || (resultLastPage > 0 && targetPage > resultLastPage))) {
+          const validPage = Math.max(1, resultLastPage);
+          if (validPage < targetPage && lastRecoveredPageRef.current !== validPage) {
+            lastRecoveredPageRef.current = validPage;
+
+            // Keep URL query in sync
+            const nextParams = new URLSearchParams(searchParams?.toString() || "");
+            if (validPage <= 1) {
+              nextParams.delete("page");
+            } else {
+              nextParams.set("page", String(validPage));
+            }
+            const nextQuery = nextParams.toString();
+            router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ""}`);
+            onPageChange?.(validPage);
+
+            // Fetch target page immediately keeping current items visible (no empty flash)
+            targetPage = validPage;
+            continue;
+          }
+        }
+
+        if (itemsList.length > 0) {
+          lastRecoveredPageRef.current = null;
+        }
+
+        setData(result);
+        setIsLoading(false);
+        setIsFetching(false);
+        break;
       }
-
-      const queryString = params.toString();
-      const url = `${endpoint}${queryString ? `?${queryString}` : ""}`;
-      const result = await apiFetch<Paginated<T>>(url);
-
-      // Stale-response guard: ignore out-of-order responses
-      if (currentRequestId !== requestIdRef.current) {
-        return;
-      }
-
-      setData(result);
-      setIsLoading(false);
-      setIsFetching(false);
     } catch (err: unknown) {
       if (currentRequestId !== requestIdRef.current) {
         return;
@@ -129,7 +173,20 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
       setIsFetching(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, page, perPage, debouncedSearch, sort, direction, filtersKey, enabled]);
+  }, [
+    enabled,
+    page,
+    perPage,
+    debouncedSearch,
+    sort,
+    direction,
+    filtersKey,
+    endpoint,
+    searchParams,
+    pathname,
+    router,
+    onPageChange,
+  ]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch paginated list when query parameters change

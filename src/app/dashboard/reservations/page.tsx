@@ -111,6 +111,7 @@ function ReservationsContent() {
     sort: "start_time",
     direction: directionParam,
     enabled: activeView === "list",
+    onPageChange: (p) => updateQuery({ page: p }),
   });
 
   // Load services and therapists for dropdowns

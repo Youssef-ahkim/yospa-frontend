@@ -41,6 +41,15 @@ export interface Therapist {
   updated_at?: string;
 }
 
+export interface ClientStats {
+  total_reservations: number;
+  completed_count: number;
+  cancelled_count: number;
+  upcoming_count: number;
+  last_visit: string | null;
+  total_spent: number | null;
+}
+
 export interface Client {
   id: number;
   spa_id?: number;
@@ -48,6 +57,7 @@ export interface Client {
   phone: string;
   email: string | null;
   notes?: string | null;
+  stats?: ClientStats;
   created_at?: string;
   updated_at?: string;
 }
