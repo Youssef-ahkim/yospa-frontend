@@ -207,6 +207,18 @@ export function SearchablePicker<T>({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (displayedOptions.length > 0) {
+                      onSelect(displayedOptions[0]);
+                      setIsOpen(false);
+                    }
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setIsOpen(false);
+                  }
+                }}
                 placeholder="Type to search..."
                 className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-[#EAE4F2] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7455A4] focus:border-[#7455A4] text-[#33283D] placeholder-[#7A6F86]/60"
               />
@@ -229,6 +241,11 @@ export function SearchablePicker<T>({
             {allowClear && (
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onSelect(null);
+                  setIsOpen(false);
+                }}
                 onClick={() => {
                   onSelect(null);
                   setIsOpen(false);
@@ -256,6 +273,11 @@ export function SearchablePicker<T>({
                 <button
                   key={String(optId)}
                   type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelect(opt);
+                    setIsOpen(false);
+                  }}
                   onClick={() => {
                     onSelect(opt);
                     setIsOpen(false);

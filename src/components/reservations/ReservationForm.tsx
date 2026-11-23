@@ -237,7 +237,7 @@ export function ReservationForm({
     if (query.trim()) params.set("search", query.trim());
     params.set("per_page", "10");
     const res = await apiFetch<Paginated<Client> | Client[]>(`/clients?${params.toString()}`);
-    return Array.isArray(res) ? res : res.data;
+    return Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
   }, []);
 
   const fetchTherapists = useCallback(async (query: string): Promise<Therapist[]> => {
@@ -246,7 +246,7 @@ export function ReservationForm({
     params.set("per_page", "10");
     params.set("all", "1");
     const res = await apiFetch<Paginated<Therapist> | Therapist[]>(`/therapists?${params.toString()}`);
-    return Array.isArray(res) ? res : res.data;
+    return Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
   }, []);
 
   const handleServiceChange = (serviceId: string) => {
