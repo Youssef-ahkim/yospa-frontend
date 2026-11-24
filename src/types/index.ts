@@ -269,3 +269,101 @@ export interface PlatformAuditLog {
   actor?: { id: number; name: string; email: string } | null;
   spa?: { id: number; name: string; slug: string } | null;
 }
+
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+export type TicketPriority = "low" | "medium" | "high";
+export type TicketCategory = "bug" | "billing" | "feature" | "other";
+
+export interface TicketMessage {
+  id: number;
+  ticket_id: number;
+  user_id: number | null;
+  body: string;
+  is_platform_reply: boolean;
+  created_at?: string;
+  updated_at?: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: Role;
+  } | null;
+}
+
+export interface Ticket {
+  id: number;
+  spa_id: number;
+  created_by_user_id: number | null;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  description: string;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  creator?: {
+    id: number;
+    name: string;
+    email: string;
+    role: Role;
+  } | null;
+  spa?: {
+    id: number;
+    name: string;
+    slug: string;
+  } | null;
+  messages_count?: number;
+  messages?: TicketMessage[];
+}
+
+export const TICKET_STATUSES: Record<
+  TicketStatus,
+  { label: string; badgeClass: string; dotClass: string }
+> = {
+  open: {
+    label: "Open",
+    badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
+    dotClass: "bg-blue-500",
+  },
+  in_progress: {
+    label: "In Progress",
+    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+    dotClass: "bg-amber-500",
+  },
+  resolved: {
+    label: "Resolved",
+    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    dotClass: "bg-emerald-500",
+  },
+  closed: {
+    label: "Closed",
+    badgeClass: "bg-gray-100 text-gray-600 border-gray-200",
+    dotClass: "bg-gray-400",
+  },
+};
+
+export const TICKET_PRIORITIES: Record<
+  TicketPriority,
+  { label: string; badgeClass: string }
+> = {
+  low: {
+    label: "Low",
+    badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+  },
+  medium: {
+    label: "Medium",
+    badgeClass: "bg-sky-50 text-sky-700 border-sky-200",
+  },
+  high: {
+    label: "High",
+    badgeClass: "bg-rose-50 text-rose-700 border-rose-200 font-semibold",
+  },
+};
+
+export const TICKET_CATEGORIES: Record<TicketCategory, string> = {
+  bug: "Bug Report",
+  billing: "Billing Question",
+  feature: "Feature Request",
+  other: "Other",
+};

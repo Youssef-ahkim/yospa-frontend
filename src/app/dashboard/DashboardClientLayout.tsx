@@ -20,11 +20,12 @@ import {
   UserCheck,
   UserCog,
   MoreHorizontal,
+  LifeBuoy,
 } from "lucide-react";
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { canManageStaff } = usePermissions();
+  const { canManageStaff, canManageTickets } = usePermissions();
 
   const navItems = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -33,6 +34,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     { name: "Services", href: "/dashboard/services", icon: Sparkles },
     { name: "Therapists", href: "/dashboard/therapists", icon: UserCheck },
     ...(canManageStaff ? [{ name: "Staff", href: "/dashboard/staff", icon: UserCog }] : []),
+    ...(canManageTickets ? [{ name: "Support", href: "/dashboard/tickets", icon: LifeBuoy }] : []),
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 
@@ -73,7 +75,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 function BottomTabBar() {
   const pathname = usePathname();
-  const { canManageStaff } = usePermissions();
+  const { canManageStaff, canManageTickets } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -81,6 +83,7 @@ function BottomTabBar() {
   const moreItems = [
     { name: "Therapists", href: "/dashboard/therapists", icon: UserCheck },
     ...(canManageStaff ? [{ name: "Staff", href: "/dashboard/staff", icon: UserCog }] : []),
+    ...(canManageTickets ? [{ name: "Support", href: "/dashboard/tickets", icon: LifeBuoy }] : []),
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 

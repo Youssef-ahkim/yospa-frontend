@@ -13,6 +13,7 @@ import {
   User,
   LogOut,
   Shield,
+  LifeBuoy,
 } from "lucide-react";
 
 interface NavItem {
@@ -23,6 +24,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Spas", href: "/platform", icon: Building2 },
+  { name: "Tickets", href: "/platform/tickets", icon: LifeBuoy },
   { name: "Audit", href: "/platform/audit", icon: ShieldAlert },
   { name: "Account", href: "/platform/account", icon: User },
 ];

@@ -33,6 +33,10 @@ export function canManagePlatform(role?: Role | null): boolean {
   return role === "superuser";
 }
 
+export function canManageTickets(role?: Role | null): boolean {
+  return role === "owner" || role === "admin";
+}
+
 export interface AccountEditPermission {
   canEdit: boolean;
   canDeactivate: boolean;
@@ -181,6 +185,7 @@ export function usePermissions() {
     canDelete: canDelete(role),
     canSeeRevenue: canSeeRevenue(role),
     canManagePlatform: canManagePlatform(role),
+    canManageTickets: canManageTickets(role),
     canEditAccount: (targetUser: { role: Role; id: number }) => canEditAccount(user, targetUser),
     allowedRoles: getAllowedRolesForCaller(role),
   };
