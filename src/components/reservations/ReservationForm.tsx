@@ -596,7 +596,7 @@ export function ReservationForm({
 
         {/* Total Price */}
         <FormField
-          label="Total Price"
+          label="Total Price (MAD)"
           required
           error={fieldErrors.total_price?.[0]}
           labelExtra={
@@ -610,9 +610,6 @@ export function ReservationForm({
           }
         >
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#7A6F86]">
-              $
-            </span>
             <input
               type="number"
               step="0.01"
@@ -621,8 +618,11 @@ export function ReservationForm({
               value={formData.total_price}
               onChange={(e) => handlePriceChange(e.target.value)}
               placeholder="0.00"
-              className={inputCls("total_price") + " pl-8 font-semibold"}
+              className={inputCls("total_price") + " pr-14 font-semibold"}
             />
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#7A6F86] pointer-events-none">
+              MAD
+            </span>
           </div>
         </FormField>
 

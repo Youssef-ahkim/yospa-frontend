@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CheckCircle2, Clock, Users, DollarSign } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, Users, Coins } from "lucide-react";
 import { DashboardStats } from "@/hooks/useDashboardData";
 import { usePermissions } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/currency";
@@ -116,7 +116,7 @@ export function StatCards({
       {showRevenueCard && (
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#EAE4F2] shadow-xs flex items-center gap-4 card-shadow-hover">
           <div className="w-11 h-11 rounded-xl bg-[#F0EAF7] text-[#7455A4] flex items-center justify-center flex-shrink-0">
-            <DollarSign className="w-5 h-5 text-[#7455A4]" />
+            <Coins className="w-5 h-5 text-[#7455A4]" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-[#7A6F86] truncate" title="Revenue (this month)">
