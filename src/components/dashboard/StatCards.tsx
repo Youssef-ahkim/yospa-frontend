@@ -3,7 +3,6 @@
 import { Calendar, CheckCircle2, Clock, Users, Coins } from "lucide-react";
 import { DashboardStats } from "@/hooks/useDashboardData";
 import { usePermissions } from "@/lib/permissions";
-import { formatCurrency } from "@/lib/currency";
 
 interface StatCardsProps {
   isLoading: boolean;
@@ -119,15 +118,23 @@ export function StatCards({
             <Coins className="w-5 h-5 text-[#7455A4]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-[#7A6F86] truncate" title="Revenue (this month)">
-              Revenue (this month)
+            <p className="text-xs font-medium text-[#7A6F86] truncate" title="This Month's Revenue">
+              This Month&apos;s Revenue
             </p>
-            <div className="flex items-baseline mt-0.5">
-              <span className="text-lg sm:text-xl xl:text-2xl font-bold text-[#33283D] tabular-nums whitespace-nowrap">
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-xl sm:text-2xl font-bold text-[#33283D] tabular-nums">
                 {data?.revenue !== null && data?.revenue !== undefined
-                  ? formatCurrency(data.revenue)
+                  ? new Intl.NumberFormat("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(data.revenue)
                   : "—"}
               </span>
+              {data?.revenue !== null && data?.revenue !== undefined && (
+                <span className="text-xs font-semibold text-[#7A6F86] tracking-wider uppercase">
+                  MAD
+                </span>
+              )}
             </div>
           </div>
         </div>
