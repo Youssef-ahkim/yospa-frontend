@@ -119,14 +119,15 @@ export function StatCards({
             <DollarSign className="w-5 h-5 text-[#7455A4]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-[#7A6F86] truncate">Revenue</p>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-xl sm:text-2xl font-bold text-[#33283D] tabular-nums">
+            <p className="text-xs font-medium text-[#7A6F86] truncate" title="Revenue (this month)">
+              Revenue (this month)
+            </p>
+            <div className="flex items-baseline mt-0.5">
+              <span className="text-lg sm:text-xl xl:text-2xl font-bold text-[#33283D] tabular-nums whitespace-nowrap">
                 {data?.revenue !== null && data?.revenue !== undefined
                   ? formatCurrency(data.revenue)
                   : "—"}
               </span>
-              <span className="text-[11px] font-semibold text-[#7A6F86]">this month</span>
             </div>
           </div>
         </div>
