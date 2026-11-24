@@ -191,6 +191,7 @@ export interface SalesReportData {
   to: string;
   buckets: SalesBucket[];
   totals: SalesTotals;
+  now?: string;
 }
 
 export interface BestSellerService {

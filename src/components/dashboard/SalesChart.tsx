@@ -48,21 +48,17 @@ export function SalesChart({ range, onRangeChange, canSeeRevenue }: SalesChartPr
     fetchReport(range);
   }, [range, fetchReport]);
 
-  // Current local time as naive "YYYY-MM-DD HH:mm:ss" without timezone conversion
-  const currentLocalNaive = useMemo(() => {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  }, []);
-
   // Process buckets: identify future buckets
   const processedBuckets = useMemo(() => {
     if (!data?.buckets) return [];
     return data.buckets.map((b: SalesBucket) => ({
       ...b,
-      isFuture: b.start > currentLocalNaive,
+      isFuture:
+        data.range === "1d" &&
+        Boolean(data.now) &&
+        Boolean(data.now && b.start > data.now),
     }));
-  }, [data, currentLocalNaive]);
+  }, [data]);
 
   // Non-future buckets
   const nonFutureBuckets = useMemo(() => {
