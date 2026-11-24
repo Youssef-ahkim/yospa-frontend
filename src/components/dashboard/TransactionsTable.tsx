@@ -10,11 +10,13 @@ import { formatShortDateTime24 } from "@/lib/dates";
 interface TransactionsTableProps {
   reservations?: Reservation[];
   isLoading?: boolean;
+  className?: string;
 }
 
 export function TransactionsTable({
   reservations,
   isLoading = false,
+  className = "",
 }: TransactionsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -30,7 +32,9 @@ export function TransactionsTable({
   }, [reservations, searchQuery]);
 
   return (
-    <div className="w-full bg-white rounded-3xl p-6 border border-[#EAE4F2] shadow-xs space-y-5">
+    <div
+      className={`lg:col-span-8 bg-white rounded-3xl p-6 border border-[#EAE4F2] shadow-xs space-y-5 min-w-0 ${className}`}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-base sm:text-lg font-bold text-[#33283D]">Today&apos;s appointments</h3>

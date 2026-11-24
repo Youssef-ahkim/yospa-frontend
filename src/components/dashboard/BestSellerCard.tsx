@@ -60,7 +60,7 @@ export function BestSellerCard({ range, canSeeRevenue }: BestSellerCardProps) {
       : "this year";
 
   return (
-    <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-[#EAE4F2] shadow-xs flex flex-col justify-between space-y-6">
+    <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-[#EAE4F2] shadow-xs flex flex-col justify-between space-y-6 min-w-0">
       <div>
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-bold text-[#33283D]">Top Services 🎉</h3>
