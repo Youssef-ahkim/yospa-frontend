@@ -81,29 +81,29 @@ export function ReservationsTable({
   return (
     <div className="bg-white border border-[#EAE4F2] rounded-2xl overflow-hidden shadow-xs">
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <table className="w-full divide-y divide-[#EAE4F2] text-left text-xs">
           <thead className="bg-[#FAF8FC]">
             <tr>
-              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Client
               </th>
-              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Service
               </th>
-              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Therapist
               </th>
-              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Date &amp; Time
               </th>
-              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Price
               </th>
-              <th className="px-3.5 py-3 text-right text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3 py-3 text-right text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -129,23 +129,24 @@ export function ReservationsTable({
               return (
                 <tr key={res.id} className="hover:bg-[#FAF8FC] transition-colors">
                   {/* Client Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-[#F0EAF7] flex items-center justify-center flex-shrink-0">
                         <User className="w-3.5 h-3.5 text-[#7455A4]" />
                       </div>
-                      <div>
+                      <div className="max-w-[140px] truncate">
                         {res.client?.id ? (
                           <Link
                             href={`/dashboard/clients/${res.client.id}`}
-                            className="text-xs font-semibold text-[#33283D] hover:text-[#7455A4] transition-colors"
+                            className="text-xs font-semibold text-[#33283D] hover:text-[#7455A4] transition-colors truncate block"
+                            title={clientName}
                           >
                             {clientName}
                           </Link>
                         ) : (
-                          <div className="text-xs font-semibold text-[#33283D]">{clientName}</div>
+                          <div className="text-xs font-semibold text-[#33283D] truncate" title={clientName}>{clientName}</div>
                         )}
-                        <div className="text-[11px] text-[#7A6F86]">
+                        <div className="text-[11px] text-[#7A6F86] truncate">
                           {res.client?.phone || res.client?.email || "No contact info"}
                         </div>
                       </div>
@@ -153,10 +154,10 @@ export function ReservationsTable({
                   </td>
 
                   {/* Service Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#33283D]">
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#33283D] max-w-[170px] truncate" title={serviceName}>
                       <Tag className="w-3.5 h-3.5 text-[#9275BC] flex-shrink-0" />
-                      <span>{serviceName}</span>
+                      <span className="truncate">{serviceName}</span>
                     </div>
                     {res.service?.duration_minutes && (
                       <span className="text-[11px] text-[#7A6F86]">
@@ -166,14 +167,14 @@ export function ReservationsTable({
                   </td>
 
                   {/* Therapist Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     {res.therapist ? (
-                      <div className="flex items-center gap-2 text-xs font-medium text-[#33283D]">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-[#33283D] max-w-[110px] truncate" title={res.therapist.name}>
                         <span
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-2xs"
+                          className="w-2 h-2 rounded-full flex-shrink-0 shadow-2xs"
                           style={{ backgroundColor: res.therapist.color || "#7455A4" }}
                         />
-                        <span>{res.therapist.name}</span>
+                        <span className="truncate">{res.therapist.name}</span>
                       </div>
                     ) : (
                       <span className="text-xs text-[#7A6F86]/50 italic">—</span>
@@ -181,12 +182,12 @@ export function ReservationsTable({
                   </td>
 
                   {/* Status Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <StatusBadge status={res.status} />
                   </td>
 
                   {/* Date & Time Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap text-xs text-[#7A6F86]">
+                  <td className="px-3 py-3 whitespace-nowrap text-xs text-[#7A6F86]">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-[#7A6F86]/70 flex-shrink-0" />
                       <span>{formattedDate}</span>
@@ -194,29 +195,29 @@ export function ReservationsTable({
                   </td>
 
                   {/* Price Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap text-xs font-bold text-[#33283D]">
+                  <td className="px-3 py-3 whitespace-nowrap text-xs font-bold text-[#33283D]">
                     <span>{formatCurrency(formattedPrice)}</span>
                   </td>
 
                   {/* Action Transitions Column */}
-                  <td className="px-3.5 py-3 whitespace-nowrap text-right text-xs">
+                  <td className="px-3 py-3 whitespace-nowrap text-right text-xs">
                     {isRowUpdating ? (
                       <div className="inline-flex items-center gap-1.5 text-xs text-[#7A6F86]">
                         <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />
                         <span>Updating...</span>
                       </div>
                     ) : (
-                      <div className="inline-flex items-center justify-end gap-1.5">
+                      <div className="inline-flex items-center justify-end gap-1">
                         {(res.status === "pending" || res.status === "confirmed") && (
                           <button
                             type="button"
                             disabled={isRowUpdating}
                             onClick={() => onEditClick(res)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#33283D] bg-white hover:bg-[#FAF8FC] rounded-lg transition-colors cursor-pointer border border-[#EAE4F2] shadow-2xs"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#33283D] bg-white hover:bg-[#FAF8FC] rounded-lg transition-colors cursor-pointer border border-[#EAE4F2] shadow-2xs"
                             title="Edit this reservation"
                           >
                             <Edit3 className="w-3 h-3 text-[#7455A4]" />
-                            Edit
+                            <span>Edit</span>
                           </button>
                         )}
 
@@ -225,11 +226,11 @@ export function ReservationsTable({
                             type="button"
                             disabled={isRowUpdating}
                             onClick={() => onStatusChange(res, "confirmed")}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-lg transition-colors cursor-pointer border border-[#C9B8E2]"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#7455A4] bg-[#F0EAF7] hover:bg-[#E4D8F0] rounded-lg transition-colors cursor-pointer border border-[#C9B8E2]"
                             title="Confirm this appointment"
                           >
                             <CheckCircle2 className="w-3 h-3" />
-                            Confirm
+                            <span>Confirm</span>
                           </button>
                         )}
 
@@ -238,11 +239,11 @@ export function ReservationsTable({
                             type="button"
                             disabled={isRowUpdating}
                             onClick={() => onStatusChange(res, "completed")}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-lg transition-colors cursor-pointer border border-[#91A68D]/30"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#91A68D] bg-[#91A68D]/15 hover:bg-[#91A68D]/25 rounded-lg transition-colors cursor-pointer border border-[#91A68D]/30"
                             title="Mark appointment as completed"
                           >
                             <CheckCheck className="w-3 h-3" />
-                            Complete
+                            <span>Complete</span>
                           </button>
                         )}
 
@@ -255,7 +256,7 @@ export function ReservationsTable({
                             title="Cancel this reservation"
                           >
                             <XCircle className="w-3 h-3" />
-                            Cancel
+                            <span>Cancel</span>
                           </button>
                         )}
 
@@ -264,11 +265,11 @@ export function ReservationsTable({
                             type="button"
                             disabled={isRowUpdating}
                             onClick={() => onDeleteClick(res)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#BE123C] bg-white hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-[#FECDD3] shadow-2xs disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-[#BE123C] bg-white hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-[#FECDD3] shadow-2xs disabled:opacity-50"
                             title="Delete this reservation"
                           >
                             <Trash2 className="w-3 h-3 text-[#BE123C]" />
-                            Delete
+                            <span>Delete</span>
                           </button>
                         )}
 
