@@ -169,6 +169,37 @@ export interface DashboardSummary {
   total_reservations: number;
 }
 
+export type SalesReportRange = "1d" | "7d" | "30d" | "12m";
+
+export interface SalesBucket {
+  label: string;
+  start: string; // naive local "YYYY-MM-DD HH:mm:ss"
+  revenue: number | null; // null for staff
+  completed_count: number;
+  bookings: number;
+}
+
+export interface SalesTotals {
+  revenue: number | null; // null for staff
+  completed_count: number;
+  bookings: number;
+}
+
+export interface SalesReportData {
+  range: SalesReportRange;
+  from: string;
+  to: string;
+  buckets: SalesBucket[];
+  totals: SalesTotals;
+}
+
+export interface BestSellerService {
+  service_id: number;
+  name: string;
+  count: number;
+  revenue: number | null; // null for staff
+}
+
 export interface PlatformStats {
   spas: {
     total: number;

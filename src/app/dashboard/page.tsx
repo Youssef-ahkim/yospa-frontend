@@ -1,18 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/lib/permissions";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCards } from "@/components/dashboard/StatCards";
+import { SalesChart } from "@/components/dashboard/SalesChart";
 import { TransactionsTable } from "@/components/dashboard/TransactionsTable";
+import { BestSellerCard } from "@/components/dashboard/BestSellerCard";
+import { SalesReportRange } from "@/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { canSeeRevenue } = usePermissions();
   const { isLoading, error, data, refetch } = useDashboardData();
+  const [range, setRange] = useState<SalesReportRange>("7d");
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -56,10 +60,15 @@ export default function DashboardPage() {
 
       <StatCards isLoading={isLoading} data={data} canSeeRevenue={canSeeRevenue} />
 
-      <TransactionsTable
-        reservations={data?.todaySchedule}
-        isLoading={isLoading}
-      />
+      <SalesChart range={range} onRangeChange={setRange} canSeeRevenue={canSeeRevenue} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <TransactionsTable
+          reservations={data?.todaySchedule}
+          isLoading={isLoading}
+        />
+        <BestSellerCard range={range} canSeeRevenue={canSeeRevenue} />
+      </div>
     </div>
   );
 }
