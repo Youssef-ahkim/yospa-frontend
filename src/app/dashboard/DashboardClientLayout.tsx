@@ -269,7 +269,7 @@ export default function DashboardClientLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8FC] flex text-[#33283D]">
+    <div className="min-h-screen bg-[#FAF8FC] flex text-[#33283D] w-full max-w-[100vw] overflow-x-hidden">
       {/* ── Desktop Sidebar ── */}
       <div className="hidden md:flex md:w-[260px] md:flex-col fixed inset-y-0 z-50">
         <div className="flex flex-col h-full bg-white border-r border-[#EAE4F2] shadow-sm">
@@ -437,9 +437,9 @@ export default function DashboardClientLayout({
       )}
 
       {/* ── Main Content ── */}
-      <div className="flex-1 md:pl-[260px] flex flex-col min-h-screen">
-        <main className="flex-1 pb-24 md:pb-12 pt-14 md:pt-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      <div className="flex-1 md:pl-[260px] flex flex-col min-h-screen min-w-0 w-full overflow-x-hidden">
+        <main className="flex-1 pb-24 md:pb-12 pt-14 md:pt-0 min-w-0 w-full">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 min-w-0 w-full">
             {children}
           </div>
         </main>

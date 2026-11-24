@@ -348,10 +348,10 @@ function ReservationsContent() {
       ) : (
         <>
           {/* Filters Bar */}
-          <div className="bg-white border border-[#EAE4F2] rounded-2xl p-4 shadow-xs space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div className="bg-white border border-[#EAE4F2] rounded-2xl p-4 shadow-xs space-y-4 min-w-0">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center min-w-0">
               {/* Search input */}
-              <div className="md:col-span-4 relative">
+              <div className="md:col-span-4 relative min-w-0">
                 <Search className="w-4 h-4 text-[#7A6F86] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -379,7 +379,7 @@ function ReservationsContent() {
               </div>
 
               {/* Therapist Filter */}
-              <div className="md:col-span-3">
+              <div className="md:col-span-3 min-w-0">
                 <select
                   value={therapistIdParam}
                   onChange={(e) => updateQuery({ therapist_id: e.target.value, page: 1 })}
@@ -395,22 +395,22 @@ function ReservationsContent() {
               </div>
 
               {/* Date Range: From & To */}
-              <div className="md:col-span-3 flex items-center gap-1.5">
+              <div className="md:col-span-3 flex items-center gap-1.5 min-w-0">
                 <input
                   type="date"
                   value={fromParam}
                   onChange={(e) => updateQuery({ from: e.target.value || null, page: 1 })}
-                  className={`w-full px-2 py-1.5 text-xs border rounded-xl bg-white text-[#33283D] ${
+                  className={`w-full min-w-0 px-2 py-1.5 text-xs border rounded-xl bg-white text-[#33283D] ${
                     !isDateRangeValid ? "border-red-400 bg-red-50" : "border-[#EAE4F2]"
                   }`}
                   title="From date"
                 />
-                <span className="text-xs text-[#7A6F86]">to</span>
+                <span className="text-xs text-[#7A6F86] flex-shrink-0">to</span>
                 <input
                   type="date"
                   value={toParam}
                   onChange={(e) => updateQuery({ to: e.target.value || null, page: 1 })}
-                  className={`w-full px-2 py-1.5 text-xs border rounded-xl bg-white text-[#33283D] ${
+                  className={`w-full min-w-0 px-2 py-1.5 text-xs border rounded-xl bg-white text-[#33283D] ${
                     !isDateRangeValid ? "border-red-400 bg-red-50" : "border-[#EAE4F2]"
                   }`}
                   title="To date"
@@ -418,7 +418,7 @@ function ReservationsContent() {
               </div>
 
               {/* Sort toggle & Reset */}
-              <div className="md:col-span-2 flex items-center justify-end gap-2">
+              <div className="md:col-span-2 flex items-center justify-end gap-2 min-w-0 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() =>
