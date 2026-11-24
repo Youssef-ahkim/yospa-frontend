@@ -482,18 +482,16 @@ function ReservationsContent() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className={isFetching ? "opacity-60 pointer-events-none transition-opacity" : ""}>
-                <ReservationsTable
-                  displayedReservations={reservations}
-                  totalReservationsCount={total}
-                  updatingId={updatingId}
-                  onStatusChange={handleStatusChange}
-                  onEditClick={openEditModal}
-                  onDeleteClick={(res) => setDeleteTarget(res)}
-                  onCreateClick={() => openCreateModal()}
-                  onClearFilters={clearAllFilters}
-                />
-              </div>
+              <ReservationsTable
+                displayedReservations={reservations}
+                totalReservationsCount={total}
+                updatingId={updatingId}
+                onStatusChange={handleStatusChange}
+                onEditClick={openEditModal}
+                onDeleteClick={(res) => setDeleteTarget(res)}
+                onCreateClick={() => openCreateModal()}
+                onClearFilters={clearAllFilters}
+              />
 
               {/* Server-side Pagination Control */}
               <Pagination

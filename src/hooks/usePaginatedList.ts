@@ -142,6 +142,7 @@ export function usePaginatedList<T, F extends Record<string, unknown> = Record<s
 
         // Stale-response guard: ignore out-of-order responses
         if (currentRequestId !== requestIdRef.current) {
+          setIsFetching(false);
           return;
         }
 

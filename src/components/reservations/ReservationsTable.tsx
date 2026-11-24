@@ -82,28 +82,28 @@ export function ReservationsTable({
     <div className="bg-white border border-[#EAE4F2] rounded-2xl overflow-hidden shadow-xs">
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-[#EAE4F2]">
+        <table className="w-full divide-y divide-[#EAE4F2] text-left text-xs">
           <thead className="bg-[#FAF8FC]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Client
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Service
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Therapist
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
-                Date & Time
+              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+                Date &amp; Time
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3.5 py-3 text-left text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Price
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
+              <th className="px-3.5 py-3 text-right text-xs font-semibold text-[#7A6F86] uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -115,11 +115,21 @@ export function ReservationsTable({
               const formattedPrice = res.total_price ?? 0;
               const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[res.status] || [];
               const isRowUpdating = updatingId === res.id;
+              const formattedDate = res.start_time
+                ? parseNaiveDateTime(res.start_time).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                : "Date N/A";
 
               return (
                 <tr key={res.id} className="hover:bg-[#FAF8FC] transition-colors">
                   {/* Client Column */}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3.5 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-[#F0EAF7] flex items-center justify-center flex-shrink-0">
                         <User className="w-3.5 h-3.5 text-[#7455A4]" />
@@ -128,14 +138,14 @@ export function ReservationsTable({
                         {res.client?.id ? (
                           <Link
                             href={`/dashboard/clients/${res.client.id}`}
-                            className="text-sm font-semibold text-[#33283D] hover:text-[#7455A4] transition-colors"
+                            className="text-xs font-semibold text-[#33283D] hover:text-[#7455A4] transition-colors"
                           >
                             {clientName}
                           </Link>
                         ) : (
-                          <div className="text-sm font-semibold text-[#33283D]">{clientName}</div>
+                          <div className="text-xs font-semibold text-[#33283D]">{clientName}</div>
                         )}
-                        <div className="text-xs text-[#7A6F86]">
+                        <div className="text-[11px] text-[#7A6F86]">
                           {res.client?.phone || res.client?.email || "No contact info"}
                         </div>
                       </div>
@@ -143,20 +153,20 @@ export function ReservationsTable({
                   </td>
 
                   {/* Service Column */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#33283D]">
-                      <Tag className="w-4 h-4 text-[#9275BC] flex-shrink-0" />
+                  <td className="px-3.5 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#33283D]">
+                      <Tag className="w-3.5 h-3.5 text-[#9275BC] flex-shrink-0" />
                       <span>{serviceName}</span>
                     </div>
                     {res.service?.duration_minutes && (
-                      <span className="text-xs text-[#7A6F86]">
+                      <span className="text-[11px] text-[#7A6F86]">
                         {res.service.duration_minutes} min duration
                       </span>
                     )}
                   </td>
 
                   {/* Therapist Column */}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3.5 py-3 whitespace-nowrap">
                     {res.therapist ? (
                       <div className="flex items-center gap-2 text-xs font-medium text-[#33283D]">
                         <span
@@ -171,27 +181,25 @@ export function ReservationsTable({
                   </td>
 
                   {/* Status Column */}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3.5 py-3 whitespace-nowrap">
                     <StatusBadge status={res.status} />
                   </td>
 
                   {/* Date & Time Column */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#7A6F86]">
+                  <td className="px-3.5 py-3 whitespace-nowrap text-xs text-[#7A6F86]">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-[#7A6F86]/70 flex-shrink-0" />
-                      <span>
-                        {res.start_time ? parseNaiveDateTime(res.start_time).toLocaleString() : "Date N/A"}
-                      </span>
+                      <span>{formattedDate}</span>
                     </div>
                   </td>
 
                   {/* Price Column */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#33283D]">
+                  <td className="px-3.5 py-3 whitespace-nowrap text-xs font-bold text-[#33283D]">
                     <span>{formatCurrency(formattedPrice)}</span>
                   </td>
 
                   {/* Action Transitions Column */}
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                  <td className="px-3.5 py-3 whitespace-nowrap text-right text-xs">
                     {isRowUpdating ? (
                       <div className="inline-flex items-center gap-1.5 text-xs text-[#7A6F86]">
                         <Spinner className="w-3.5 h-3.5 text-[#7455A4]" />
