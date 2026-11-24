@@ -326,7 +326,7 @@ export function EditPlatformUserSlideOver({
         </div>
       }
     >
-      <form id="edit-platform-user-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-platform-user-form" onSubmit={handleSubmit} className="space-y-5">
         {conflictError && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-700">
             <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />

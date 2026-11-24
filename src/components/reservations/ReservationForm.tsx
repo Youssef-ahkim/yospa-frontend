@@ -438,7 +438,7 @@ export function ReservationForm({
         </div>
       }
     >
-      <form id="reservation-form" onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form id="reservation-form" onSubmit={handleSubmit} className="space-y-5">
         {/* Client Picker (Search-as-you-type) */}
         <FormField
           label="Client"

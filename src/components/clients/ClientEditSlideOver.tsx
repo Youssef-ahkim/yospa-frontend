@@ -64,7 +64,7 @@ export function ClientEditSlideOver({
         </div>
       }
     >
-      <form id="edit-client-form" onSubmit={onSubmit} className="p-6 space-y-5">
+      <form id="edit-client-form" onSubmit={onSubmit} className="space-y-5">
         <FormField label="Full Name" required error={fieldErrors.full_name?.[0]}>
           <input
             type="text"

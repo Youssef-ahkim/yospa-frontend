@@ -187,7 +187,7 @@ export function TicketDetailSlideOver({
           </button>
         </div>
       ) : ticket ? (
-        <div className="flex flex-col h-full space-y-6">
+        <div className="space-y-5">
           {/* Metadata badges bar */}
           <div className="flex flex-wrap items-center gap-2 p-3 bg-[#FAF8FC] border border-[#EAE4F2] rounded-2xl">
             {statusConfig && (
@@ -312,7 +312,7 @@ export function TicketDetailSlideOver({
           </div>
 
           {/* Reply Form / Closed state banner */}
-          <div className="pt-4 border-t border-[#EAE4F2]">
+          <div className="pt-5 border-t border-[#EAE4F2]">
             {ticket.status === "closed" ? (
               <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl text-center">
                 <p className="text-xs font-semibold text-gray-600">

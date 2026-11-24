@@ -183,7 +183,7 @@ export function PlatformTicketDetailSlideOver({
           </button>
         </div>
       ) : ticket ? (
-        <div className="flex flex-col h-full space-y-6">
+        <div className="space-y-5">
           {/* Spa & Submitter Info Card */}
           <div className="p-4 bg-[#FAF8FC] border border-[#EAE4F2] rounded-2xl space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -360,7 +360,7 @@ export function PlatformTicketDetailSlideOver({
           </div>
 
           {/* Platform Reply Form */}
-          <div className="pt-4 border-t border-[#EAE4F2]">
+          <div className="pt-5 border-t border-[#EAE4F2]">
             <form onSubmit={handleSendReply} className="space-y-3">
               <label
                 htmlFor="platform-reply-box"

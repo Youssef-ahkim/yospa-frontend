@@ -238,7 +238,7 @@ export function StaffFormSlideOver({
         </div>
       }
     >
-      <form id="staff-form" onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form id="staff-form" onSubmit={handleSubmit} className="space-y-5">
         {/* Full Name */}
         <FormField label="Full Name" required error={fieldErrors.name?.[0]}>
           <input

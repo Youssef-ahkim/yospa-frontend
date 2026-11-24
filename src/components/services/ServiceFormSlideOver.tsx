@@ -183,7 +183,7 @@ export function ServiceFormSlideOver({
         </div>
       }
     >
-      <form id="service-form" onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form id="service-form" onSubmit={handleSubmit} className="space-y-5">
         {/* Service Name */}
         <FormField label="Service Name" required error={fieldErrors.name?.[0]}>
           <input

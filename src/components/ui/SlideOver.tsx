@@ -136,10 +136,10 @@ export function SlideOver({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 p-5 border-t border-[#EAE4F2] bg-[#FAF8FC]">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-[#EAE4F2] bg-[#FAF8FC]">
           {footer}
         </div>
       </div>

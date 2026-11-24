@@ -353,7 +353,7 @@ export function CreateSpaSlideOver({
         </div>
       }
     >
-      <form id="create-spa-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="create-spa-form" onSubmit={handleSubmit} className="space-y-5">
         {/* Spa Details Section */}
         <div className="pb-1">
           <h3 className="text-xs font-bold text-[#7455A4] uppercase tracking-wider">

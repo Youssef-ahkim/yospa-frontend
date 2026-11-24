@@ -124,7 +124,7 @@ export function CreateTicketSlideOver({
         </div>
       }
     >
-      <form id="create-ticket-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="create-ticket-form" onSubmit={handleSubmit} className="space-y-5">
         <FormField label="Subject" required error={errors.subject}>
           <input
             type="text"

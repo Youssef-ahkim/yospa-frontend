@@ -411,7 +411,7 @@ function ClientsContent() {
           </div>
         }
       >
-        <form id="create-client-form" onSubmit={handleCreateClient} className="p-6 space-y-5">
+        <form id="create-client-form" onSubmit={handleCreateClient} className="space-y-5">
           <FormField label="Full Name" required error={fieldErrors.full_name?.[0]}>
             <input
               type="text"
