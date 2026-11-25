@@ -21,7 +21,8 @@ export const metadata: Metadata = {
   },
   description: "Multi-tenant gym and spa management platform.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favi.jpg",
+    apple: "/favi.jpg",
   },
 };
 
