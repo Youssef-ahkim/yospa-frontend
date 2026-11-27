@@ -13,6 +13,10 @@ export function canManageServices(role?: Role | null): boolean {
   return role === "owner" || role === "admin";
 }
 
+export function canManageProducts(role?: Role | null): boolean {
+  return role === "owner" || role === "admin";
+}
+
 export function canManageTherapists(role?: Role | null): boolean {
   return role === "owner" || role === "admin";
 }
@@ -180,6 +184,7 @@ export function usePermissions() {
     isStaff: role === "staff",
     isSuperuser: role === "superuser",
     canManageServices: canManageServices(role),
+    canManageProducts: canManageProducts(role),
     canManageTherapists: canManageTherapists(role),
     canManageStaff: canManageStaff(role),
     canDelete: canDelete(role),

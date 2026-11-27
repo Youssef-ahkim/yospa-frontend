@@ -21,6 +21,7 @@ import {
   UserCog,
   MoreHorizontal,
   LifeBuoy,
+  Package,
 } from "lucide-react";
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
@@ -32,6 +33,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     { name: "Clients", href: "/dashboard/clients", icon: Users },
     { name: "Reservations", href: "/dashboard/reservations", icon: Calendar },
     { name: "Services", href: "/dashboard/services", icon: Sparkles },
+    { name: "Products", href: "/dashboard/products", icon: Package },
     { name: "Therapists", href: "/dashboard/therapists", icon: UserCheck },
     ...(canManageStaff ? [{ name: "Staff", href: "/dashboard/staff", icon: UserCog }] : []),
     ...(canManageTickets ? [{ name: "Support", href: "/dashboard/tickets", icon: LifeBuoy }] : []),
@@ -81,6 +83,7 @@ function BottomTabBar() {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const moreItems = [
+    { name: "Products", href: "/dashboard/products", icon: Package },
     { name: "Therapists", href: "/dashboard/therapists", icon: UserCheck },
     ...(canManageStaff ? [{ name: "Staff", href: "/dashboard/staff", icon: UserCog }] : []),
     ...(canManageTickets ? [{ name: "Support", href: "/dashboard/tickets", icon: LifeBuoy }] : []),

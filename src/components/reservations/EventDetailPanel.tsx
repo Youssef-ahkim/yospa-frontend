@@ -26,7 +26,8 @@ import {
   ExternalLink,
   Edit3,
   Trash2,
-  UserCheck
+  UserCheck,
+  Package
 } from "lucide-react";
 
 interface EventDetailPanelProps {
@@ -238,6 +239,36 @@ export function EventDetailPanel({
                 <FileText className="w-3.5 h-3.5 text-[#9275BC]" /> Notes
               </span>
               <p className="text-xs text-[#33283D] whitespace-pre-wrap">{reservation.notes}</p>
+            </div>
+          )}
+
+          {/* Products Used */}
+          {reservation.products && reservation.products.length > 0 && (
+            <div className="p-3.5 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#7A6F86] font-semibold flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-[#7455A4]" /> Products Used
+                </span>
+                <span className="text-xs font-semibold text-[#7455A4]">
+                  {reservation.products.reduce((acc, p) => acc + (p.pivot?.quantity ?? 1), 0)} items
+                </span>
+              </div>
+              <div className="divide-y divide-[#EAE4F2]/60 text-xs">
+                {reservation.products.map((p) => {
+                  const qty = p.pivot?.quantity ?? 1;
+                  const unitPrice = p.pivot?.unit_price ? Number(p.pivot.unit_price) : Number(p.price);
+                  const lineTotal = unitPrice * qty;
+                  return (
+                    <div key={p.id} className="py-1.5 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-[#33283D] truncate">{p.name}</span>
+                        <span className="text-[11px] text-[#7A6F86] flex-shrink-0">× {qty} {p.unit}</span>
+                      </div>
+                      <span className="font-semibold text-[#33283D] flex-shrink-0 ml-2">{formatCurrency(lineTotal)}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

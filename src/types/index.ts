@@ -72,6 +72,37 @@ export interface Service {
   is_active: boolean;
 }
 
+export interface ReservationProductPivot {
+  id?: number;
+  reservation_id?: number;
+  product_id?: number;
+  quantity: number;
+  unit_price: string | number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Product {
+  id: number;
+  spa_id?: number;
+  name: string;
+  sku: string | null;
+  unit: string;
+  price: string | number;
+  stock_quantity: number;
+  low_stock_threshold: number;
+  description: string | null;
+  is_active: boolean;
+  pivot?: ReservationProductPivot;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ReservationProductInput {
+  product_id: number;
+  quantity: number;
+}
+
 export type ReservationStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 export interface ReservationStatusConfig {
@@ -126,6 +157,7 @@ export interface Reservation {
   client?: Client | null;
   service?: Service | null;
   therapist?: Therapist | null;
+  products?: Product[];
 }
 
 export interface ApiResponse<T> {

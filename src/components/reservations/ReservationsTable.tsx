@@ -19,6 +19,7 @@ import {
   XCircle,
   Edit3,
   Trash2,
+  Package,
 } from "lucide-react";
 
 interface ReservationsTableProps {
@@ -160,8 +161,14 @@ export function ReservationsTable({
                       <span className="truncate">{serviceName}</span>
                     </div>
                     {res.service?.duration_minutes && (
-                      <span className="text-[11px] text-[#7A6F86]">
+                      <span className="text-[11px] text-[#7A6F86] block">
                         {res.service.duration_minutes} min duration
+                      </span>
+                    )}
+                    {res.products && res.products.length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#F0EAF7] text-[#7455A4] border border-[#C9B8E2]/50 mt-1">
+                        <Package className="w-2.5 h-2.5" />
+                        {res.products.reduce((acc, p) => acc + (p.pivot?.quantity ?? 1), 0)} products
                       </span>
                     )}
                   </td>
@@ -328,6 +335,13 @@ export function ReservationsTable({
                   <Tag className="w-3.5 h-3.5 text-[#9275BC] flex-shrink-0" />
                   <span>{serviceName}</span>
                 </div>
+
+                {res.products && res.products.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#F0EAF7] text-[#7455A4] border border-[#C9B8E2]/50">
+                    <Package className="w-2.5 h-2.5" />
+                    {res.products.reduce((acc, p) => acc + (p.pivot?.quantity ?? 1), 0)} products
+                  </span>
+                )}
 
                 {res.therapist && (
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#FAF8FC] border border-[#EAE4F2] text-[11px] font-medium text-[#33283D]">

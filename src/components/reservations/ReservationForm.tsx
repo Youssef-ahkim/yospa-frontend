@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Client, Service, Therapist, Reservation, ReservationStatus, Paginated } from "@/types";
+import { Client, Service, Therapist, Reservation, ReservationStatus, Paginated, Product } from "@/types";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { FormField } from "@/components/ui/FormField";
 import { Spinner } from "@/components/ui/Spinner";
@@ -12,7 +12,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { checkReservationOverlap } from "@/lib/overlap";
 import { parseNaiveDateTime } from "@/lib/dates";
 import { useToast } from "@/context/ToastContext";
-import { Calendar, Edit3, AlertTriangle } from "lucide-react";
+import { Calendar, Edit3, AlertTriangle, Package, Plus, Trash2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface ReservationFormProps {
@@ -94,6 +94,7 @@ export function ReservationForm({
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<{ product: Product; quantity: number }[]>([]);
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [priceAutoUpdated, setPriceAutoUpdated] = useState(false);
@@ -200,6 +201,12 @@ export function ReservationForm({
         // Edit mode: prefill existing reservation WITHOUT recalculating/auto-filling price or duration
         setSelectedClient(initial.client || null);
         setSelectedTherapist(initial.therapist || null);
+        setSelectedProducts(
+          (initial.products || []).map((p) => ({
+            product: p,
+            quantity: p.pivot?.quantity ?? 1,
+          }))
+        );
         setFormData({
           client_id: String(initial.client_id || initial.client?.id || ""),
           service_id: String(initial.service_id || initial.service?.id || ""),
@@ -214,6 +221,7 @@ export function ReservationForm({
         // Create mode: auto-fill default values
         setSelectedClient(null);
         setSelectedTherapist(null);
+        setSelectedProducts([]);
         const start = initialStartTime || getDefaultStartTime();
         const defaultService = services[0];
         const end = defaultService ? calculateEndTime(start, defaultService.duration_minutes) : "";
@@ -248,6 +256,62 @@ export function ReservationForm({
     const res = await apiFetch<Paginated<Therapist> | Therapist[]>(`/therapists?${params.toString()}`);
     return Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
   }, []);
+
+  const fetchProducts = useCallback(async (query: string): Promise<Product[]> => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("search", query.trim());
+    params.set("per_page", "10");
+    const res = await apiFetch<Paginated<Product> | Product[]>(`/products?${params.toString()}`);
+    return Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
+  }, []);
+
+  const handleAddProduct = (product: Product | null) => {
+    if (!product) return;
+    setSelectedProducts((prev) => {
+      const idx = prev.findIndex((p) => p.product.id === product.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        return next;
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+  };
+
+  const handleUpdateProductQuantity = (productId: number, qty: number) => {
+    if (qty < 1) return;
+    setSelectedProducts((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, quantity: qty } : item
+      )
+    );
+  };
+
+  const handleRemoveProduct = (productId: number) => {
+    setSelectedProducts((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const productsSubtotal = useMemo(() => {
+    return selectedProducts.reduce((sum, item) => {
+      const price = Number(item.product.price) || 0;
+      return sum + price * item.quantity;
+    }, 0);
+  }, [selectedProducts]);
+
+  const servicePrice = useMemo(() => {
+    const s = availableServices.find((srv) => String(srv.id) === formData.service_id);
+    return s ? Number(s.price) || 0 : 0;
+  }, [availableServices, formData.service_id]);
+
+  const suggestedTotal = useMemo(() => {
+    return servicePrice + productsSubtotal;
+  }, [servicePrice, productsSubtotal]);
+
+  const handleSyncPrice = () => {
+    setFormData((prev) => ({ ...prev, total_price: suggestedTotal.toFixed(2) }));
+    setPriceManuallyEdited(true);
+    setPriceAutoUpdated(false);
+  };
 
   const handleServiceChange = (serviceId: string) => {
     const selected = availableServices.find((s) => String(s.id) === serviceId);
@@ -319,8 +383,13 @@ export function ReservationForm({
 
     setIsSubmitting(true);
     try {
+      const productPayload = selectedProducts.map((p) => ({
+        product_id: p.product.id,
+        quantity: p.quantity,
+      }));
+
       if (isEdit && initial) {
-        // PATCH: send client_id, service_id, therapist_id, start_time, end_time (both always), total_price, notes. Status omitted.
+        // PATCH: send client_id, service_id, therapist_id, start_time, end_time (both always), total_price, notes, products. Status omitted.
         const payload = {
           client_id: Number(formData.client_id),
           service_id: Number(formData.service_id),
@@ -329,6 +398,7 @@ export function ReservationForm({
           end_time: formatForApi(formData.end_time),
           total_price: parseFloat(String(formData.total_price)),
           notes: formData.notes.trim() || null,
+          products: productPayload,
         };
 
         const response = await apiFetch<{ message: string; reservation: Reservation }>(
@@ -343,7 +413,7 @@ export function ReservationForm({
         onSuccess(response.reservation, true);
         onClose();
       } else {
-        // POST: send client_id, service_id, therapist_id, start_time, end_time, total_price, status, notes
+        // POST: send client_id, service_id, therapist_id, start_time, end_time, total_price, status, notes, products
         const payload = {
           client_id: Number(formData.client_id),
           service_id: Number(formData.service_id),
@@ -353,6 +423,7 @@ export function ReservationForm({
           total_price: parseFloat(String(formData.total_price)),
           status: formData.status,
           notes: formData.notes.trim() || null,
+          products: productPayload,
         };
 
         const response = await apiFetch<{ message: string; reservation: Reservation }>(
@@ -379,6 +450,8 @@ export function ReservationForm({
           toast.error(errors.end_time[0]);
         } else if (errors.date) {
           toast.error(errors.date[0]);
+        } else if (errors.products) {
+          toast.error(errors.products[0]);
         } else {
           const firstKey = Object.keys(errors)[0];
           toast.error(errors[firstKey]?.[0] || err.message);
@@ -593,6 +666,135 @@ export function ReservationForm({
             </div>
           </div>
         )}
+
+        {/* Products Consumption */}
+        <div className="space-y-3 p-3.5 bg-[#FAF8FC] rounded-xl border border-[#EAE4F2]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Package className="w-4 h-4 text-[#7455A4]" />
+              <span className="text-xs font-bold text-[#33283D] uppercase tracking-wider">
+                Products Consumed (Optional)
+              </span>
+            </div>
+            {selectedProducts.length > 0 && (
+              <span className="text-xs font-semibold text-[#7455A4]">
+                Subtotal: {formatCurrency(productsSubtotal)}
+              </span>
+            )}
+          </div>
+
+          <SearchablePicker<Product>
+            value=""
+            selectedItem={null}
+            onSelect={handleAddProduct}
+            fetchOptions={fetchProducts}
+            getId={(p) => p.id}
+            getDisplayValue={(p) => p.name}
+            renderItem={(p) => (
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium text-[#33283D]">{p.name}</span>
+                  {p.sku && (
+                    <span className="ml-2 font-mono text-[10px] text-[#7A6F86]">[{p.sku}]</span>
+                  )}
+                  <span className="text-[11px] text-[#7A6F86] block">
+                    {formatCurrency(p.price)} / {p.unit} • In stock: {p.stock_quantity}
+                  </span>
+                </div>
+                <span className="text-xs font-semibold text-[#7455A4] flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </span>
+              </div>
+            )}
+            placeholder="Search products to attach (e.g. oil, scrub, towel)..."
+            clearLabel=""
+          />
+
+          {fieldErrors.products && (
+            <p className="text-xs text-red-600 font-medium">{fieldErrors.products[0]}</p>
+          )}
+
+          {selectedProducts.length > 0 && (
+            <div className="divide-y divide-[#EAE4F2] bg-white rounded-lg border border-[#EAE4F2] overflow-hidden">
+              {selectedProducts.map((item) => {
+                const isOutOfStock = item.product.stock_quantity < item.quantity;
+                return (
+                  <div
+                    key={item.product.id}
+                    className="p-2.5 flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="font-semibold text-[#33283D] truncate">{item.product.name}</span>
+                        {item.product.sku && (
+                          <span className="font-mono text-[10px] text-[#7A6F86]">[{item.product.sku}]</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#7A6F86]">
+                        {formatCurrency(item.product.price)} / {item.product.unit} •{" "}
+                        <span className={isOutOfStock ? "text-amber-600 font-semibold" : ""}>
+                          Stock: {item.product.stock_quantity}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center border border-[#EAE4F2] rounded-lg overflow-hidden bg-white">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateProductQuantity(item.product.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          className="px-2 py-1 text-xs text-[#7A6F86] hover:bg-[#FAF8FC] disabled:opacity-40 cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="px-2 py-1 text-xs font-bold text-[#33283D] min-w-[28px] text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateProductQuantity(item.product.id, item.quantity + 1)}
+                          className="px-2 py-1 text-xs text-[#7A6F86] hover:bg-[#FAF8FC] cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <span className="font-bold text-[#33283D] min-w-[60px] text-right">
+                        {formatCurrency((Number(item.product.price) || 0) * item.quantity)}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProduct(item.product.id)}
+                        className="p-1 text-[#BE123C] hover:bg-rose-50 rounded cursor-pointer"
+                        title="Remove product"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedProducts.length > 0 && (
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-[#7A6F86]">
+                Suggested Total (Service + Products): <strong>{formatCurrency(suggestedTotal)}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={handleSyncPrice}
+                className="text-xs font-semibold text-[#7455A4] hover:text-[#5E4387] inline-flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Apply to Total
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Total Price */}
         <FormField
