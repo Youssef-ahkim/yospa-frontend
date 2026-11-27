@@ -694,9 +694,6 @@ export function ReservationForm({
               <div className="flex items-center justify-between">
                 <div>
                   <span className="font-medium text-[#33283D]">{p.name}</span>
-                  {p.sku && (
-                    <span className="ml-2 font-mono text-[10px] text-[#7A6F86]">[{p.sku}]</span>
-                  )}
                   <span className="text-[11px] text-[#7A6F86] block">
                     {formatCurrency(p.price)} / {p.unit} • In stock: {p.stock_quantity}
                   </span>
@@ -726,9 +723,6 @@ export function ReservationForm({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 truncate">
                         <span className="font-semibold text-[#33283D] truncate">{item.product.name}</span>
-                        {item.product.sku && (
-                          <span className="font-mono text-[10px] text-[#7A6F86]">[{item.product.sku}]</span>
-                        )}
                       </div>
                       <div className="text-[11px] text-[#7A6F86]">
                         {formatCurrency(item.product.price)} / {item.product.unit} •{" "}

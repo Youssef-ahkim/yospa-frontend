@@ -27,7 +27,6 @@ export function ProductFormSlideOver({
 
   const [formData, setFormData] = useState({
     name: "",
-    sku: "",
     unit: "unit",
     price: "",
     stock_quantity: "0",
@@ -49,7 +48,6 @@ export function ProductFormSlideOver({
     if (product) {
       setFormData({
         name: product.name,
-        sku: product.sku || "",
         unit: product.unit || "unit",
         price: String(product.price),
         stock_quantity: String(product.stock_quantity),
@@ -60,7 +58,6 @@ export function ProductFormSlideOver({
     } else {
       setFormData({
         name: "",
-        sku: "",
         unit: "unit",
         price: "",
         stock_quantity: "0",
@@ -81,10 +78,6 @@ export function ProductFormSlideOver({
       errors.name = ["Product name is required."];
     } else if (trimmedName.length > 255) {
       errors.name = ["Product name must not exceed 255 characters."];
-    }
-
-    if (formData.sku && formData.sku.trim().length > 100) {
-      errors.sku = ["SKU must not exceed 100 characters."];
     }
 
     if (formData.unit && formData.unit.trim().length > 30) {
@@ -120,7 +113,6 @@ export function ProductFormSlideOver({
     try {
       const payload = {
         name: trimmedName,
-        sku: formData.sku.trim() || null,
         unit: formData.unit.trim() || "unit",
         price: priceNum,
         stock_quantity: stockNum,
@@ -178,7 +170,7 @@ export function ProductFormSlideOver({
       title={isEdit ? "Edit Product" : "New Product"}
       description={
         isEdit
-          ? "Update product inventory, price, SKU, and threshold"
+          ? "Update product inventory, price, and threshold"
           : "Add a new consumable or retail product to your catalog"
       }
       icon={
@@ -224,17 +216,6 @@ export function ProductFormSlideOver({
         </FormField>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label="SKU / Barcode" error={fieldErrors.sku?.[0]}>
-            <input
-              type="text"
-              maxLength={100}
-              value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              className={inputClass("sku")}
-              placeholder="e.g. OIL-ARG-500"
-            />
-          </FormField>
-
           <FormField label="Unit of Measure" error={fieldErrors.unit?.[0]}>
             <input
               type="text"
@@ -245,9 +226,7 @@ export function ProductFormSlideOver({
               placeholder="e.g. unit, ml, g, bottle"
             />
           </FormField>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField label="Unit Price (MAD)" required error={fieldErrors.price?.[0]}>
             <input
               type="number"
@@ -260,7 +239,9 @@ export function ProductFormSlideOver({
               placeholder="0.00"
             />
           </FormField>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Current Stock" required error={fieldErrors.stock_quantity?.[0]}>
             <input
               type="number"

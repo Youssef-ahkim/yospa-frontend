@@ -248,7 +248,7 @@ export default function ProductsPage() {
               setSearchQuery(e.target.value);
               setQueryPage(1);
             }}
-            placeholder="Search by product name or SKU..."
+            placeholder="Search by product name..."
             className="w-full pl-9 pr-9 py-2 text-sm border border-[#EAE4F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7455A4] focus:border-[#7455A4] bg-[#FAF8FC] hover:bg-white text-[#33283D] placeholder-[#7A6F86]/60 transition-colors"
           />
           {searchQuery && (
@@ -356,7 +356,6 @@ export default function ProductsPage() {
                 <thead>
                   <tr className="border-b border-[#EAE4F2] bg-[#FAF8FC] text-[11px] font-bold text-[#7A6F86] uppercase tracking-wider">
                     <th className="px-5 py-3.5">Product</th>
-                    <th className="px-4 py-3.5">SKU</th>
                     <th className="px-4 py-3.5">Unit</th>
                     <th className="px-4 py-3.5">Price</th>
                     <th className="px-4 py-3.5">Stock Level</th>
@@ -383,9 +382,6 @@ export default function ProductsPage() {
                               {product.description}
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-4 text-xs font-mono text-[#7455A4]">
-                          {product.sku || "—"}
                         </td>
                         <td className="px-4 py-4 text-xs text-[#7A6F86]">
                           {product.unit}
@@ -483,11 +479,6 @@ export default function ProductsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h4 className="font-semibold text-sm text-[#33283D]">{product.name}</h4>
-                      {product.sku && (
-                        <span className="text-[11px] font-mono text-[#7455A4] block mt-0.5">
-                          SKU: {product.sku}
-                        </span>
-                      )}
                     </div>
                     <span className="font-bold text-sm text-[#7455A4]">
                       {formatCurrency(product.price)}
